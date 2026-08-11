@@ -1,0 +1,1 @@
+// 프로젝트 목록 server component
