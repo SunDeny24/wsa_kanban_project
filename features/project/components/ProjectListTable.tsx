@@ -14,100 +14,121 @@ export const ProjectTable = ({ projects }: ProjectTableProps) => {
   };
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-white">
-      <table className="w-full">
-        <thead className="bg-gray-50">
-          <tr className="border-b">
-            <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">
-              프로젝트명
-            </th>
-            <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">
-              고객사
-            </th>
-            <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">
-              설명
-            </th>
-            <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">
-              상태
-            </th>
-            <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">
-              시작일
-            </th>
-            <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">
-              상세
-            </th>
-          </tr>
-        </thead>
+      <div className="min-h-[560px] overflow-hidden rounded-lg border bg-white">
+        <div className="h-full overflow-x-auto">
+          <table className="w-full min-w-[900px] table-fixed">
+            <thead className="bg-gray-50">
+            <tr className="border-b">
+              <th className="w-[20%] px-4 py-2.5 text-center text-xs font-semibold text-gray-600">
+                프로젝트명
+              </th>
 
-        <tbody>
-          {projects.length === 0 ? (
-            <tr>
-              <td
-                colSpan={6}
-                className="px-6 py-12 text-center text-sm text-gray-500"
-              >
-                조회된 프로젝트가 없습니다.
-              </td>
+              <th className="w-[15%] px-4 py-2.5 text-center text-xs font-semibold text-gray-600">
+                고객사
+              </th>
+
+              <th className="w-[25%] px-4 py-2.5 text-center text-xs font-semibold text-gray-600">
+                설명
+              </th>
+
+              <th className="w-[12%] px-4 py-2.5 text-center text-xs font-semibold text-gray-600">
+                상태
+              </th>
+
+              <th className="w-[15%] px-4 py-2.5 text-center text-xs font-semibold text-gray-600">
+                시작일
+              </th>
+
+              <th className="w-[13%] px-4 py-2.5 text-center text-xs font-semibold text-gray-600">
+                상세
+              </th>
             </tr>
-          ) : (
-            projects.map((project) => (
-              <tr
-                key={project.id}
-                className="border-b last:border-b-0 hover:bg-gray-50"
-              >
-                {/* 프로젝트명 */}
-                <td className="px-6 py-4">
-                  <span className="font-medium text-gray-900">
-                    {project.name}
-                  </span>
-                </td>
+            </thead>
 
-                {/* 고객사 */}
-                <td className="px-6 py-4 text-sm text-gray-700">
-                  {project.customer}
-                </td>
-
-                {/* 설명 */}
-                <td className="max-w-[300px] px-6 py-4 text-sm text-gray-500">
-                  <p className="truncate">
-                    {project.description ?? "-"}
-                  </p>
-                </td>
-
-                {/* 상태 */}
-                <td className="px-6 py-4 text-center">
-                  <span
-                    className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${project.status === "QUOTATION"
-                      ? "bg-yellow-50 text-yellow-700"
-                      : project.status === "ACTIVE"
-                        ? "bg-green-50 text-green-700"
-                        : "bg-gray-100 text-gray-600"
-                      }`}
+            <tbody>
+            {projects.length === 0 ? (
+                <tr>
+                  <td
+                      colSpan={6}
+                      className="h-[500px] px-4 text-center text-sm text-gray-400"
                   >
-                    {statusLabel[project.status]}
-                  </span>
-                </td>
+                    조회된 프로젝트가 없습니다.
+                  </td>
+                </tr>
+            ) : (
+                projects.map((project) => (
+                    <tr
+                        key={project.id}
+                        className="h-[40px] border-b last:border-b-0 hover:bg-gray-50"
+                    >
+                      {/* 프로젝트명 */}
+                      <td className="px-4 py-2">
+                        <p
+                            className="truncate text-sm font-medium text-gray-900"
+                            title={project.name}
+                        >
+                          {project.name}
+                        </p>
+                      </td>
 
-                {/* 시작일 */}
-                <td className="px-6 py-4 text-sm text-gray-600">
-                  {project.startDate ?? "-"}
-                </td>
+                      {/* 고객사 */}
+                      <td className="px-4 py-2">
+                        <p
+                            className="truncate text-sm text-gray-700"
+                            title={project.customer}
+                        >
+                          {project.customer}
+                        </p>
+                      </td>
 
-                {/* 상세 */}
-                <td className="px-6 py-4 text-center">
-                  <button
-                    type="button"
-                    className="rounded-md border px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
-                  >
-                    상세 보기
-                  </button>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
+                      {/* 설명 */}
+                      <td className="px-4 py-2">
+                        <p
+                            className="truncate text-sm text-gray-500"
+                            title={project.description ?? ""}
+                        >
+                          {project.description ?? "-"}
+                        </p>
+                      </td>
+
+                      {/* 상태 */}
+                      <td className="px-4 py-2 text-center">
+                    <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+                            project.status === "QUOTATION"
+                                ? "bg-yellow-50 text-yellow-700"
+                                : project.status === "ACTIVE"
+                                    ? "bg-green-50 text-green-700"
+                                    : "bg-gray-100 text-gray-600"
+                        }`}
+                    >
+                      {statusLabel[project.status]}
+                    </span>
+                      </td>
+
+                      {/* 시작일 */}
+                      <td className="px-4 py-2 text-center">
+                    <span className="text-sm text-gray-600">
+                      {project.startDate ?? "-"}
+                    </span>
+                      </td>
+
+                      {/* 상세 */}
+                      <td className="px-4 py-2 text-center">
+                        <button
+                            type="button"
+                            className="rounded-md border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-100"
+                        >
+                          상세 보기
+                        </button>
+                      </td>
+                    </tr>
+                ))
+            )}
+            </tbody>
+          </table>
+        </div>
+      </div>
   );
 }
 

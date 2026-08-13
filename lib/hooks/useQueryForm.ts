@@ -140,7 +140,7 @@ export function useUpdateEntityForm<
 }
 
 // ============================================
-// LIST Form (목록 + 검색/필터) - useQuery + useForm 결합
+// LIST Form (목록 + 검색/필터 + 페이지네이션) - useQuery + useForm 결합
 // ============================================
 export function useListEntityForm<
     TData,
@@ -151,6 +151,10 @@ export function useListEntityForm<
         formOptions?: UseFormProps<TFilterData>;
         queryOptions?: {
             enabled?: boolean;
+        };
+        pagination?: {
+            page?: number;
+            size?: number;
         };
 
     },
@@ -163,31 +167,39 @@ export function useListEntityForm<
         useState<TFilterData>(
             (options?.formOptions?.defaultValues ?? {}) as TFilterData,
         );
+    // 3. 페이지네이션 상태관리 - API page는 0 부터 시작
+    const [page, setPage] = useState(
+        options?.pagination?.page ?? 0,
+    );
 
-    // 3. 목록 조회
+    // 4. 목록 조회
     const query = useEntityListQuery<TData>(
         endpoint,
-        appliedFilters as any,
+        {
+            ...appliedFilters,
+            page,
+        },
         options?.queryOptions,
     );
 
-    // 4. 검색/필터 제출 핸들러
+    // 5. 검색 - 새로운 검색조건 적용시 첫페이지부터 조회
     const onSearch = form.handleSubmit((data) => {
+        setPage(0);
         setAppliedFilters(data);
     });
 
-    // 5. 검색조건 초기화 핸들러
+    // 6. 검색조건 초기화 핸들러
     const onReset = () => {
-        form.reset(
-            (options?.formOptions?.defaultValues ?? {}) as TFilterData,
-        );
+        const defaultValues =
+            (options?.formOptions?.defaultValues ?? {}) as TFilterData;
 
-        setAppliedFilters(
-            (options?.formOptions?.defaultValues ?? {}) as TFilterData,
-        );
+        form.reset(defaultValues);
+
+        setPage(0);
+        setAppliedFilters(defaultValues);
     };
 
-    // 6. 특정 검색 조건 변경 
+    // 7. 특정 검색 조건 변경 - 필터 변경시 첫 페이지부터 조회
     const setFilter = <K extends Path<TFilterData>>(
         key: K,
         value: PathValue<TFilterData, K>,
@@ -199,8 +211,15 @@ export function useListEntityForm<
             [key]: value,
         } as TFilterData;
 
+        setPage(0);
         setAppliedFilters(nextFilters);
     };
+
+    // 8. 페이지 변경
+    const onPageChange = (nextPage: number) => {
+        setPage(nextPage);
+    };
+
 
     return {
         // Form 메서드들 (검색/필터용)
@@ -212,15 +231,17 @@ export function useListEntityForm<
         control: form.control,
         formState: form.formState,
 
+        // 검색, 필터
         onSearch,
         onReset,
         setFilter,
 
-        // 현재 Form 값
         formValues: form.getValues(),
-
-        // 실제 API에 적용된 검색 조건
         appliedFilters,
+
+        // 페이지네이션
+        page,
+        onPageChange,
 
         // Query 관련
         data: query.data,
