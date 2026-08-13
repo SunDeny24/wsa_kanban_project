@@ -29,4 +29,16 @@ apiClient.interceptors.response.use(
   },
 );
 
+// ─── Mock API 설정 ────────────────────────────────────────────────────────────
+// NEXT_PUBLIC_USE_MOCK_API=true 이면 Axios adapter를 Mock으로 교체합니다.
+// false 또는 미설정이면 기존 실제 API를 그대로 사용합니다.
+// 기존 baseURL / interceptors / timeout 설정에는 영향을 주지 않습니다.
+if (process.env.NEXT_PUBLIC_USE_MOCK_API === 'true') {
+  // 동적 import: Mock 코드가 실제 API 모드에서는 번들에 포함되지 않도록
+  // Next.js 환경에서는 require()를 사용하여 조건부 로딩
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { setupMockAdapter } = require('@/lib/mocks');
+  setupMockAdapter(apiClient);
+}
+
 export default apiClient;
