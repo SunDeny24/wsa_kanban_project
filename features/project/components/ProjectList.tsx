@@ -61,8 +61,21 @@ export const ProjectList = () => {
   }
 
   if (error) {
-    return <div>프로젝트를 불러오지 못했습니다.</div>;
+    return (
+        <div className="flex min-h-full items-center justify-center p-5">
+          <div className="rounded-lg border border-red-200 bg-red-50 px-6 py-5 text-center">
+            <p className="text-sm font-medium text-red-700">
+              프로젝트를 불러오지 못했습니다.
+            </p>
+
+            <p className="mt-1 text-sm text-red-600">
+              {error.message}
+            </p>
+          </div>
+        </div>
+    );
   }
+
   return (
       <div className="flex min-h-full flex-col space-y-5 p-5 lg:p-6">
         {/* Header */}

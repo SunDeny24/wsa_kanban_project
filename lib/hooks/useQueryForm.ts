@@ -11,6 +11,7 @@ import {
 } from "react-hook-form";
 import { type AxiosInstance } from "axios";
 import { useEntityQuery, useEntityListQuery, useCreateEntity, useUpdateEntity, usePatchEntity } from "./useEntity";
+import { getErrorResponse } from "@/lib/api/error";
 
 // ============================================
 // CREATE Form (새로 만들기)
@@ -220,6 +221,11 @@ export function useListEntityForm<
         setPage(nextPage);
     };
 
+    // 9. 에러 응답 처리
+    const errorResponse = query.error
+        ? getErrorResponse(query.error)
+        : null;
+
 
     return {
         // Form 메서드들 (검색/필터용)
@@ -247,7 +253,7 @@ export function useListEntityForm<
         data: query.data,
         isLoading: query.isLoading,
         isFetching: query.isFetching,
-        error: query.error,
+        error: errorResponse, // ErrorResponse 타입으로 변환된 에러
         refetch: query.refetch,
 
         // 원본 객체
