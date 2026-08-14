@@ -1,7 +1,5 @@
-import {ProjectList} from "@/features/project/components/ProjectList";
+import {redirect} from "next/navigation";
 
 export default function Home() {
-  return (
-    <ProjectList/>
-  );
+  redirect("/projects");
 }

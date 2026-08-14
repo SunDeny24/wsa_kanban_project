@@ -27,11 +27,14 @@ export const ProjectForm = ({
   isPending,
   onCancel,
 }: ProjectFormProps) => {
+  // 에러 있는 경우 폼필드 스타일 수정
   const fieldClassName = (hasError: boolean) =>
     `${inputClassName} ${hasError ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : ''}`;
 
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-5">
+
+      {/* 프로젝트 명 */}
       <div>
         <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-gray-700">
           프로젝트명 <span className="text-red-500">*</span>
@@ -50,6 +53,7 @@ export const ProjectForm = ({
         {errors.name?.message && <p className="mt-1.5 text-xs text-red-600">{errors.name.message}</p>}
       </div>
 
+      {/* 고객사 */}
       <div>
         <label htmlFor="customer" className="mb-1.5 block text-sm font-medium text-gray-700">
           고객사 <span className="text-red-500">*</span>
@@ -68,6 +72,7 @@ export const ProjectForm = ({
         {errors.customer?.message && <p className="mt-1.5 text-xs text-red-600">{errors.customer.message}</p>}
       </div>
 
+      {/* 설명 */}
       <div>
         <label htmlFor="description" className="mb-1.5 block text-sm font-medium text-gray-700">설명</label>
         <textarea
@@ -84,6 +89,7 @@ export const ProjectForm = ({
         {errors.description?.message && <p className="mt-1.5 text-xs text-red-600">{errors.description.message}</p>}
       </div>
 
+      {/* 시작일 및 종료일 */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <div>
           <label htmlFor="startDate" className="mb-1.5 block text-sm font-medium text-gray-700">시작일</label>

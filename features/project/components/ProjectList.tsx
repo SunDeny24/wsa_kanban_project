@@ -1,11 +1,11 @@
 'use client';
 import React, { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ProjectTable } from "./ProjectListTable";
 import { ProjectCreate } from "./ProjectCreate";
 import { ProjectStatus } from "../types";
 import { useListEntityForm } from "@/lib/hooks/useQueryForm";
 
-// TODO: 상태필터시 전체보기, 견적중, 진행중, 보관 각 갯수 추후에 API에서 받아와서 표시하도록 수정 필요
 
 // 프로젝트 검색/필터 폼 타입 정의
 interface ProjectSearchForm {
@@ -25,7 +25,21 @@ interface ProjectListResponse {
 
 
 export const ProjectList = () => {
+  // URL 상태관리
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const statusParam = searchParams.get("status");
+  const initialStatus =
+    statusParam === "QUOTATION" || statusParam === "ACTIVE" || statusParam === "ARCHIVED"
+      ? statusParam
+      : undefined;
+  // URL은 화면에 표시되는 1부터 시작하는 페이지 번호를 사용합니다.
+  const initialPage = Math.max(
+    0,
+    (Number.parseInt(searchParams.get("page") ?? "1", 10) || 1) - 1,
+  );
   const {
     register,
     onSearch,
@@ -42,14 +56,38 @@ export const ProjectList = () => {
     {
       formOptions: {
         defaultValues: {
-          customer: "",
-          name: "",
-          status: undefined,
-          sort: "createdAt,desc",
+          customer: searchParams.get("customer") ?? "",
+          name: searchParams.get("name") ?? "",
+          status: initialStatus,
+          sort: searchParams.get("sort") ?? "createdAt,desc",
         },
+      },
+      pagination: {
+        page: initialPage,
       },
     },
   );
+
+  // URLSearchParams를 사용하여 현재 필터 상태와 페이지 번호를 URL에 반영
+  // 프로젝트 목록으로 뒤로가기 시에도 검색 조건이 유지되도록 하기 위함
+  React.useEffect(() => {
+    const params = new URLSearchParams();
+
+    // 필터 상태와 페이지 번호를 URLSearchParams에 설정
+    if (appliedFilters.status) params.set("status", appliedFilters.status);
+    if (appliedFilters.customer) params.set("customer", appliedFilters.customer);
+    if (appliedFilters.name) params.set("name", appliedFilters.name);
+    params.set("page", String(page + 1)); // API page는 0부터 시작하므로 화면에는 +1
+    if (appliedFilters.sort) params.set("sort", appliedFilters.sort);
+
+    // 현재 URL과 비교하여 변경 사항이 있으면 URL을 업데이트
+    const nextUrl = `${pathname}?${params.toString()}`;
+    const currentUrl = `${pathname}${searchParams.size ? `?${searchParams.toString()}` : ""}`;
+
+    if (nextUrl !== currentUrl) {
+      router.replace(nextUrl, { scroll: false });
+    }
+  }, [appliedFilters, page, pathname, router, searchParams]);
 
   // 현재 필터 상태와 정렬 상태를 가져옵니다.
   const currentStatus = appliedFilters.status;

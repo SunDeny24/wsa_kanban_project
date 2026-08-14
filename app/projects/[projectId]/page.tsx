@@ -1,9 +1,4 @@
-// 프로젝트 상세 server component
-
-export default function ProjectDetailPage() {
-  return (
-    <div>
-      <h1>프로젝트 상세 페이지 (준비 중)</h1>
-    </div>
-  );
+// 프로젝트 개요 탭
+export default function ProjectOverviewPage() {
+  return <div>개요</div>;
 }

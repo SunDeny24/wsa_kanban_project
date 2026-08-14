@@ -1,5 +1,7 @@
 'use client';
 import React from "react";
+import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Project } from "@/features/project/types";
 
 interface ProjectTableProps {
@@ -7,6 +9,9 @@ interface ProjectTableProps {
 }
 
 export const ProjectTable = ({ projects }: ProjectTableProps) => {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const listUrl = `${pathname}${searchParams.size ? `?${searchParams.toString()}` : ""}`;
   const statusLabel: Record<Project["status"], string> = {
     QUOTATION: "견적중",
     ACTIVE: "진행중",
@@ -115,12 +120,12 @@ export const ProjectTable = ({ projects }: ProjectTableProps) => {
 
                       {/* 상세 */}
                       <td className="px-4 py-2 text-center">
-                        <button
-                            type="button"
+                        <Link
+                            href={`/projects/${project.id}?${new URLSearchParams({ from: listUrl }).toString()}`}
                             className="rounded-md border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-100"
                         >
                           상세 보기
-                        </button>
+                        </Link>
                       </td>
                     </tr>
                 ))
