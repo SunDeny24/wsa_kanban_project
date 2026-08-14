@@ -1,6 +1,7 @@
 'use client';
-import React from "react";
+import React, { useState } from "react";
 import { ProjectTable } from "./ProjectListTable";
+import { ProjectCreate } from "./ProjectCreate";
 import { ProjectStatus } from "../types";
 import { useListEntityForm } from "@/lib/hooks/useQueryForm";
 
@@ -24,6 +25,7 @@ interface ProjectListResponse {
 
 
 export const ProjectList = () => {
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const {
     register,
     onSearch,
@@ -91,6 +93,7 @@ export const ProjectList = () => {
 
           <button
               type="button"
+              onClick={() => setIsCreateModalOpen(true)}
               className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
           >
             + 프로젝트 생성
@@ -290,6 +293,12 @@ export const ProjectList = () => {
             </button>
           </div>
         </div>
+
+        {/* 목록의 검색 조건을 유지한 채 생성 폼을 모달로 표시합니다. */}
+        <ProjectCreate
+          open={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+        />
       </div>
   );
 };
