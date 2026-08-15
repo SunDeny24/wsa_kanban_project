@@ -12,6 +12,9 @@ interface ProjectFormProps {
   onSubmit: (event?: React.BaseSyntheticEvent) => Promise<void>;
   isPending: boolean;
   onCancel: () => void;
+  submitLabel?: string;
+  pendingLabel?: string;
+  stacked?: boolean;
 }
 
 const inputClassName =
@@ -26,6 +29,9 @@ export const ProjectForm = ({
   onSubmit,
   isPending,
   onCancel,
+  submitLabel = '생성하기',
+  pendingLabel = '생성 중...',
+  stacked = false,
 }: ProjectFormProps) => {
   // 에러 있는 경우 폼필드 스타일 수정
   const fieldClassName = (hasError: boolean) =>
@@ -90,7 +96,7 @@ export const ProjectForm = ({
       </div>
 
       {/* 시작일 및 종료일 */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+      <div className={`grid grid-cols-1 gap-5 ${stacked ? '' : 'sm:grid-cols-2'}`}>
         <div>
           <label htmlFor="startDate" className="mb-1.5 block text-sm font-medium text-gray-700">시작일</label>
           <input
@@ -128,7 +134,7 @@ export const ProjectForm = ({
           disabled={isPending}
           className="h-10 rounded-md bg-black px-5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isPending ? '생성 중...' : '생성하기'}
+          {isPending ? pendingLabel : submitLabel}
         </button>
       </div>
     </form>

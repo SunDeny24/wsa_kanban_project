@@ -30,5 +30,8 @@ export interface ProjectCreateRequest {
 // 기존 이름을 참조하는 코드와의 호환을 유지합니다.
 export type CreateProjectData = ProjectCreateRequest;
 
-// 4. 프로젝트 수정 시 필요한 데이터 타입
-export interface UpdateProjectData extends Partial<CreateProjectData> {}
+// 4. PATCH /projects/{id} 요청 타입 (다섯 필드를 전체 교체)
+export type ProjectUpdateRequest = ProjectCreateRequest;
+
+// 기존 이름을 참조하는 코드와의 호환을 유지합니다.
+export type UpdateProjectData = ProjectUpdateRequest;

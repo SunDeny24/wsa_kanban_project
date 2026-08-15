@@ -43,6 +43,7 @@ export default function ProjectDetailLayout({
     projectId,
   );
 
+  // 확인용 log
   useEffect(() => {
     console.log('[ProjectDetail] projectId:', projectId);
   }, [projectId]);

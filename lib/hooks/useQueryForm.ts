@@ -98,6 +98,7 @@ export function useCreateEntityForm<
 export function useUpdateEntityForm<
     TData extends FieldValues = FieldValues,
     TResponse = TData,
+    TQueryData = TData,
 >(
     endpoint: string,
     id: string,
@@ -109,21 +110,27 @@ export function useUpdateEntityForm<
         queryOptions?: {
             enabled?: boolean;
         };
+        mapQueryData?: (data: TQueryData) => TData;
         axiosInstance?: AxiosInstance;
     },
 ) {
     // 1. Query로 기존 데이터 가져오기 (GET)
-    const query = useEntityQuery<TData>(endpoint, id, options?.queryOptions, options?.axiosInstance);
+    const query = useEntityQuery<TQueryData>(endpoint, id, options?.queryOptions, options?.axiosInstance);
 
     // 2. useForm 초기화
     const form = useForm<TData>(options?.formOptions);
+    const [errorResponse, setErrorResponse] = useState<ErrorResponse | null>(null);
+    const mapQueryData = options?.mapQueryData;
 
     // 3. 데이터 로드되면 form에 자동으로 채우기
     useEffect(() => {
         if (query.data) {
-            form.reset(query.data);
+            const formData = mapQueryData
+                ? mapQueryData(query.data)
+                : query.data as unknown as TData;
+            form.reset(formData);
         }
-    }, [query.data, form]);
+    }, [query.data, form, mapQueryData]);
 
     // 4. Update mutation (PATCH)
     const mutation = useUpdateEntity<TData, TResponse>(
@@ -134,8 +141,30 @@ export function useUpdateEntityForm<
 
     // 5. Submit handler
     const onSubmit = form.handleSubmit((data) => {
+        setErrorResponse(null);
+        form.clearErrors();
         mutation.mutate({ id, data });
     });
+
+    useEffect(() => {
+        if (!mutation.error) return;
+
+        const nextError = getErrorResponse(mutation.error);
+        const fieldErrors = nextError.fieldErrors;
+
+        if (fieldErrors && Object.keys(fieldErrors).length > 0) {
+            Object.entries(fieldErrors).forEach(([field, message]) => {
+                form.setError(field as Path<TData>, {
+                    type: "server",
+                    message,
+                });
+            });
+            setErrorResponse(null);
+            return;
+        }
+
+        setErrorResponse(nextError);
+    }, [mutation.error, form]);
 
     return {
         // Query 관련 (데이터 로딩 상태)
@@ -160,6 +189,8 @@ export function useUpdateEntityForm<
         isSuccess: mutation.isSuccess,
         isError: mutation.isError,
         error: mutation.error,
+        errorResponse,
+        clearErrorResponse: () => setErrorResponse(null),
 
         // 원본 객체 (필요시 직접 접근)
         query,
