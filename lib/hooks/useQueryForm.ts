@@ -12,6 +12,7 @@ import {
 import { type AxiosInstance } from "axios";
 import { useEntityQuery, useEntityListQuery, useCreateEntity, useUpdateEntity, usePatchEntity } from "./useEntity";
 import { getErrorResponse } from "@/lib/api/error";
+import { type ErrorResponse } from "@/types/api";
 
 // ============================================
 // CREATE Form (새로 만들기)
@@ -30,6 +31,7 @@ export function useCreateEntityForm<
     },
 ) {
     const form = useForm<TData>(options?.formOptions);
+    const [errorResponse, setErrorResponse] = useState<ErrorResponse | null>(null);
     const mutation = useCreateEntity<TData, TResponse>(
         endpoint,
         options?.mutationOptions,
@@ -37,8 +39,32 @@ export function useCreateEntityForm<
     );
 
     const onSubmit = form.handleSubmit((data: TData) => {
+        // 재요청 전에는 이전 서버 오류만 지우고 사용자가 입력한 값은 유지합니다.
+        setErrorResponse(null);
+        form.clearErrors();
         mutation.mutate(data);
     });
+
+    useEffect(() => {
+        if (!mutation.error) return;
+
+        const nextError = getErrorResponse(mutation.error);
+        const fieldErrors = nextError.fieldErrors;
+
+        if (fieldErrors && Object.keys(fieldErrors).length > 0) {
+            // 백엔드 @Valid 오류를 같은 이름의 React Hook Form 필드에 연결합니다.
+            Object.entries(fieldErrors).forEach(([field, message]) => {
+                form.setError(field as Path<TData>, {
+                    type: "server",
+                    message,
+                });
+            });
+            setErrorResponse(null);
+            return;
+        }
+
+        setErrorResponse(nextError);
+    }, [mutation.error, form]);
 
     return {
         // Form 메서드들
@@ -57,6 +83,8 @@ export function useCreateEntityForm<
         isSuccess: mutation.isSuccess,
         isError: mutation.isError,
         error: mutation.error,
+        errorResponse,
+        clearErrorResponse: () => setErrorResponse(null),
 
         // 원본 객체 (필요시 직접 접근)
         form,

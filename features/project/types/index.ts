@@ -18,14 +18,17 @@ export interface Project extends BaseTimeEntity {
   endDate: string | null;     // 종료일
 }
 
-// 3. 프로젝트 생성 시 필요한 데이터 타입 (필수/선택 값 구분)
-export interface CreateProjectData {
+// 3. POST /projects 요청 타입 (status는 서버에서 QUOTATION으로 설정)
+export interface ProjectCreateRequest {
   name: string;
   customer: string;
-  description?: string | null;
-  startDate?: string | null;
-  endDate?: string | null;
+  description?: string;
+  startDate?: string;
+  endDate?: string;
 }
+
+// 기존 이름을 참조하는 코드와의 호환을 유지합니다.
+export type CreateProjectData = ProjectCreateRequest;
 
 // 4. 프로젝트 수정 시 필요한 데이터 타입
 export interface UpdateProjectData extends Partial<CreateProjectData> {}

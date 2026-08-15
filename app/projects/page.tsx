@@ -1,9 +1,13 @@
 // 프로젝트 목록 server component
 
+import ProjectList from "@/features/project/components/ProjectList";
+import { Suspense } from "react";
+
+// 추후 스켈레톤이나 로딩 컴포넌트로 교체 가능
 export default function ProjectsPage() {
   return (
-    <div>
-      <h1>프로젝트 목록 페이지 (준비 중)</h1>
-    </div>
+    <Suspense fallback={<div>프로젝트를 불러오는 중...</div>}>
+        <ProjectList/>
+    </Suspense>
   );
 }
