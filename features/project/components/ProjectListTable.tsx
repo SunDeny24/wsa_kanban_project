@@ -3,6 +3,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Project } from "@/features/project/types";
+import {statusLabel} from "@/features/project/constants";
 
 interface ProjectTableProps {
   projects: Project[];
@@ -12,11 +13,7 @@ export const ProjectTable = ({ projects }: ProjectTableProps) => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const listUrl = `${pathname}${searchParams.size ? `?${searchParams.toString()}` : ""}`;
-  const statusLabel: Record<Project["status"], string> = {
-    QUOTATION: "견적중",
-    ACTIVE: "진행중",
-    ARCHIVED: "보관",
-  };
+
 
   return (
       <div className="min-h-[560px] overflow-hidden rounded-lg border bg-white">
@@ -99,14 +96,14 @@ export const ProjectTable = ({ projects }: ProjectTableProps) => {
                       {/* 상태 */}
                       <td className="px-4 py-2 text-center">
                     <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
-                            project.status === "QUOTATION"
-                                ? "bg-yellow-50 text-yellow-700"
-                                : project.status === "ACTIVE"
-                                    ? "bg-green-50 text-green-700"
-                                    : "bg-gray-100 text-gray-600"
-                        }`}
-                    >
+                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+                              project.status === "QUOTATION"
+                                  ? "bg-blue-50 text-blue-700"
+                                  : project.status === "ACTIVE"
+                                      ? "bg-green-50 text-green-700"
+                                      : "bg-gray-100 text-gray-600"
+                          }`}
+                      >
                       {statusLabel[project.status]}
                     </span>
                       </td>
