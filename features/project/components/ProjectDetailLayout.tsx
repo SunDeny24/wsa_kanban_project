@@ -19,7 +19,7 @@ const tabs = [
   { label: '개요', path: '' },
   { label: '견적', path: '/quotation' },
  // { label: '아이템', path: '/item' }, 추후 예정
-  { label: '보드', path: '/board' },
+  { label: '보드', path: '/cards' },
 ];
 
 export default function ProjectDetailLayout({

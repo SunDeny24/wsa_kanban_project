@@ -23,11 +23,11 @@ export function useCreateEntityForm<
 >(
     endpoint: string,
     options?: {
-        formOptions?: UseFormProps<TData>;
-        mutationOptions?: {
+        formOptions?: UseFormProps<TData>; //입력 폼 옵션
+        mutationOptions?: { // 생성 mutation 옵션
             onSuccessCallback?: (data: TResponse) => void;
         };
-        axiosInstance?: AxiosInstance;
+        axiosInstance?: AxiosInstance; // axios 인스턴스 옵션
     },
 ) {
     const form = useForm<TData>(options?.formOptions);
