@@ -9,6 +9,7 @@ interface KanbanColumnProps {
     status: CardStatus;
     cards: Card[];
     onCreateCard: () => void;
+    onCardClick: (cardId: string) => void;
 }
 // 컬럼별 스타일 정의
 const columnStyle: Record<
@@ -53,6 +54,7 @@ export const KanbanColumn = ({
     status,
     cards,
     onCreateCard,
+    onCardClick,
 }: KanbanColumnProps) => {
     const style = columnStyle[status];
 
@@ -82,7 +84,11 @@ export const KanbanColumn = ({
             {/* 카드 영역 */}
             <div className="flex flex-1 flex-col gap-2 px-2 pb-2">
                 {cards.map((card) => (
-                    <KanbanCard key={card.id} card={card} />
+                    <KanbanCard
+                        key={card.id}
+                        card={card}
+                        onClick={() => onCardClick(card.id)}
+                    />
                 ))}
 
                 {cards.length === 0 && (

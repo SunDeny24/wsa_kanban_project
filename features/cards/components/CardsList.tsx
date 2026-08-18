@@ -9,6 +9,7 @@ import { cardStatusLabel } from "@/features/cards/constants";
 import MobileKanbanCard from "@/features/cards/components/MobileKanbanCard";
 import KanbanColumn from "@/features/cards/components/KanbanColumn";
 import { CardsCreate } from "@/features/cards/components/CardsCreate";
+import CardDetail from "@/features/cards/components/CardDetail";
 
 interface KanbanBoardProps {
     projectId: string;
@@ -20,6 +21,7 @@ const columns: CardStatus[] = ["TODO", "IN_PROGRESS", "HOLD", "DONE"];
 export const CardList = ({ projectId }: KanbanBoardProps) => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false); // 카드 생성 모달 상태
     const [selectedStatus, setSelectedStatus] = useState<CardStatus>("TODO"); // 선택된 카드 상태
+    const [selectedCardId, setSelectedCardId] = useState<string | null>(null); // 선택된 카드 ID
     const { data, isLoading, error } = useEntityListQuery<CardListResponse>(
         `/projects/${projectId}/cards`
     );
@@ -50,6 +52,7 @@ export const CardList = ({ projectId }: KanbanBoardProps) => {
         (card) => card.status === selectedStatus
     );
 
+    console.log("selectedCardId: ", selectedCardId);
     return (
         <div className="flex min-h-full flex-col">
             {/* 상단 */}
@@ -141,7 +144,11 @@ export const CardList = ({ projectId }: KanbanBoardProps) => {
                 {/* 모바일 카드 목록 */}
                 <div className="flex flex-col gap-2">
                     {selectedCards.map((card) => (
-                        <MobileKanbanCard key={card.id} card={card} />
+                        <MobileKanbanCard
+                            key={card.id}
+                            card={card}
+                            onClick={() => setSelectedCardId(card.id)}
+                        />
                     ))}
 
                     {selectedCards.length === 0 && (
@@ -174,6 +181,7 @@ export const CardList = ({ projectId }: KanbanBoardProps) => {
                                 status={status}
                                 cards={columnCards}
                                 onCreateCard={() => setIsCreateModalOpen(true)}
+                                onCardClick={setSelectedCardId}
                             />
                         );
                     })}
@@ -186,6 +194,13 @@ export const CardList = ({ projectId }: KanbanBoardProps) => {
                 open={isCreateModalOpen}
                 onClose={() => setIsCreateModalOpen(false)}
             />
+
+            {selectedCardId && (
+                <CardDetail
+                    cardId={selectedCardId}
+                    onClose={() => setSelectedCardId(null)}
+                />
+            )}
         </div>
     );
 };

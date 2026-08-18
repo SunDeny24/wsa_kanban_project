@@ -12,15 +12,16 @@ import {
 
 interface KanbanCardProps {
     card: Card;
+    onClick: () => void;
 }
 
-export const KanbanCard = ({ card }: KanbanCardProps) => {
+export const KanbanCard = ({ card, onClick }: KanbanCardProps) => {
     return (
         <button
             type="button"
             className="group w-full rounded-xl border border-black/[0.07] bg-white p-3 text-left
-                       shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all duration-150 hover:-translate-y-[1px] hover:shadow-[0_5px_15px_rgba(0,0,0,0.07)]
-       ">
+                       shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all duration-150 hover:-translate-y-[1px] hover:shadow-[0_5px_15px_rgba(0,0,0,0.07)]"
+            onClick={onClick}>
             {/* 제목 / 우선순위 */}
             <div className="flex items-start justify-between gap-3">
                 <h3 className="line-clamp-2 text-sm font-medium leading-5 text-zinc-900 ">

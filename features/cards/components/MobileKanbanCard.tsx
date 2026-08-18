@@ -6,9 +6,10 @@ import { priorityClassName, priorityLabel } from "@/features/cards/constants";
 
 interface MobileKanbanCardProps {
     card: Card;
+    onClick?: () => void;
 }
 
-export const MobileKanbanCard = ({ card }: MobileKanbanCardProps) => {
+export const MobileKanbanCard = ({ card, onClick }: MobileKanbanCardProps) => {
     return (
         <button
             type="button"
@@ -21,7 +22,8 @@ export const MobileKanbanCard = ({ card }: MobileKanbanCardProps) => {
                 shadow-[0_1px_2px_rgba(0,0,0,0.04)]
                 transition
                 active:scale-[0.99]
-              ">
+              "
+            onClick={onClick}>
             {/* 제목 / 우선순위 */}
             <div className="flex items-start justify-between gap-3">
                 <h3 className=" min-w-0 flex-1 truncate text-sm font-medium text-zinc-900 ">
