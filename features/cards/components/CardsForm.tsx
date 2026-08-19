@@ -12,7 +12,6 @@ interface CardsFormProps {
     onCancel: () => void;
     submitLabel?: string;
     pendingLabel?: string;
-    stacked?: boolean;
 }
 
 const inputClassName =
@@ -29,7 +28,6 @@ export const CardsForm = ({
     onCancel,
     submitLabel = "생성하기",
     pendingLabel = "생성 중...",
-    stacked = false,
 }: CardsFormProps) => {
     // 에러 있는 경우 폼필드 스타일 수정
     const fieldClassName = (hasError: boolean) =>
@@ -97,7 +95,7 @@ export const CardsForm = ({
                 )}
             </div>
 
-            <div className="grid grid-cols-1 gap-4 pt-5 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 pt-5 sm:grid-cols-3">
                 {/* 우선순위 */}
                 <div>
                     <label
@@ -161,11 +159,8 @@ export const CardsForm = ({
                         </p>
                     )}
                 </div>
-            </div>
 
-            {/* 이슈 발생일시 - 미입력시 서버에서 현재일시로 채움 */}
-            <div
-                className={`grid grid-cols-1 gap-5 ${stacked ? "" : "sm:grid-cols-2"}`}>
+                {/* 이슈 발생일시 - 미입력시 서버에서 현재일시로 채움 */}
                 <div>
                     <label
                         htmlFor="occurredAt"

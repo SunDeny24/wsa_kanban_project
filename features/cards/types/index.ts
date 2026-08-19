@@ -1,15 +1,10 @@
 // 카드 타입 정의
 
-export type CardStatus =
-    | 'TODO'
-    | 'IN_PROGRESS'
-    | 'HOLD'
-    | 'DONE';
+export type CardStatus = "TODO" | "IN_PROGRESS" | "HOLD" | "DONE";
 
-export type PriorityType = 'HIGH' | 'MEDIUM' | 'LOW' | 'URGENT';
+export type PriorityType = "HIGH" | "MEDIUM" | "LOW" | "URGENT";
 
-
-export type SupportType = 'REMOTE' | 'ONSITE' | 'PHONE' | 'NONE';
+export type SupportType = "REMOTE" | "ONSITE" | "PHONE" | "NONE";
 
 // 카드 단건 데이터 타입 (API 응답 기준)
 export interface Card {
@@ -33,7 +28,6 @@ export interface Card {
 
     createdAt: string; // 카드 생성 일시
     updatedAt: string; // 카드 수정 일시
-
 }
 
 // 카드 생성 요청 타입 정의
@@ -46,4 +40,15 @@ export interface CardCreateRequest {
     assigner?: string; // 요청자
     assignee?: string; // 담당자
     occurredAt?: string; //이슈 발생일시
+}
+
+// 카드 수정 요청 타입 정의
+export interface CardUpdateForm {
+    title: string;
+    description?: string;
+    priorityType: Card["priorityType"];
+    supportType: Card["supportType"];
+    assignee?: string;
+    workHours?: number;
+    resolutionNote?: string;
 }
