@@ -116,6 +116,7 @@ export function useUpdateEntityForm<
         mutationOptions?: {
             //수정 API 호출 옵션
             onSuccessCallback?: (data: TResponse) => void; // 수정 API 성공 후 콜백
+            invalidateKeys?: string[][]; // 수정 성공 후 무효화할 쿼리 키 배열 추가
         };
         queryOptions?: {
             //기존 데이터 조회 옵션
