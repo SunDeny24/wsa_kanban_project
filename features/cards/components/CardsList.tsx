@@ -166,7 +166,6 @@ export const CardList = ({ projectId }: KanbanBoardProps) => {
             </div>
 
             {/* ---------------------태블릿 / PC ------------------------ */}
-
             <div className="hidden md:block">
                 <div className=" grid grid-cols-4 gap-2 lg:gap-3 ">
                     {columns.map((status) => {
@@ -197,6 +196,7 @@ export const CardList = ({ projectId }: KanbanBoardProps) => {
             {selectedCardId && (
                 <CardDetail
                     cardId={selectedCardId}
+                    projectId={projectId}
                     onClose={() => setSelectedCardId(null)}
                 />
             )}

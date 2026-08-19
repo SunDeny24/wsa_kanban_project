@@ -24,7 +24,7 @@ export function useEntityQuery<T = any>(
     endpoint: string,
     id?: string,
     options?: UseEntityQueryOptions<T>,
-    axiosInstance: AxiosInstance = apiClient,
+    axiosInstance: AxiosInstance = apiClient
 ) {
     return useQuery<T>({
         queryKey: id ? [endpoint, id] : [endpoint],
@@ -42,17 +42,13 @@ export function useEntityQuery<T = any>(
 // GET - 리스트 조회 (검색, 페이징 포함)
 // ============================================
 
-type QueryParams = Record<
-  string,
-  string | number | string[] | undefined
->;
-
+type QueryParams = Record<string, string | number | string[] | undefined>;
 
 export function useEntityListQuery<T = any>(
     endpoint: string,
     params?: QueryParams,
     options?: UseEntityQueryOptions<T>,
-    axiosInstance: AxiosInstance = apiClient,
+    axiosInstance: AxiosInstance = apiClient
 ) {
     return useQuery<T>({
         queryKey: [endpoint, params],
@@ -60,12 +56,12 @@ export function useEntityListQuery<T = any>(
             const safeParams = params
                 ? Object.fromEntries(
                       Object.entries(params).filter(
-                          ([, value]) => value !== undefined,
-                      ),
+                          ([, value]) => value !== undefined
+                      )
                   )
                 : {};
             const queryString = new URLSearchParams(
-                safeParams as Record<string, string>,
+                safeParams as Record<string, string>
             ).toString();
             const url = `${endpoint}${queryString ? `?${queryString}` : ""}`;
             const response = await axiosInstance.get(url);
@@ -79,17 +75,18 @@ export function useEntityListQuery<T = any>(
 // ============================================
 // POST - 생성
 // ============================================
+// 생성 옵션 인터페이스
 interface UseCreateOptions {
-    invalidateKeys?: string[][];
-    onSuccessCallback?: (data: any) => void;
-    onErrorCallback?: (error: any) => void;
-    successMessage?: string | boolean;
+    invalidateKeys?: string[][]; // 무효화할 쿼리 키 배열
+    onSuccessCallback?: (data: any) => void; // 성공 시 콜백
+    onErrorCallback?: (error: any) => void; // 실패 시 콜백
+    successMessage?: string | boolean; // 성공 시 메시지 표시 여부 (true면 기본 메시지, string이면 해당 메시지)
 }
 
 export function useCreateEntity<TData = any, TResponse = any>(
     endpoint: string,
     options?: UseCreateOptions,
-    axiosInstance: AxiosInstance = apiClient,
+    axiosInstance: AxiosInstance = apiClient
 ) {
     const queryClient = useQueryClient();
 
@@ -126,15 +123,19 @@ interface UseUpdateOptions extends UseCreateOptions {}
 export function useUpdateEntity<TData = any, TResponse = any>(
     endpoint: string,
     options?: UseUpdateOptions,
-    axiosInstance: AxiosInstance = apiClient,
+    axiosInstance: AxiosInstance = apiClient
 ) {
     const queryClient = useQueryClient();
 
     return useMutation<TResponse, Error, { id: string; data: TData }>({
         mutationFn: async ({ id, data }) => {
-            const response = await axiosInstance.patch(`${endpoint}/${id}`, data, {
-                successMessage: options?.successMessage ?? true,
-            } as any);
+            const response = await axiosInstance.patch(
+                `${endpoint}/${id}`,
+                data,
+                {
+                    successMessage: options?.successMessage ?? true,
+                } as any
+            );
             return response.data;
         },
         onSuccess: (data, variables) => {
@@ -165,7 +166,7 @@ export function useUpdateEntity<TData = any, TResponse = any>(
 export function usePatchEntity<TData = any, TResponse = any>(
     endpoint: string,
     options?: UseCreateOptions,
-    axiosInstance: AxiosInstance = apiClient,
+    axiosInstance: AxiosInstance = apiClient
 ) {
     const queryClient = useQueryClient();
 
@@ -196,25 +197,31 @@ export function usePatchEntity<TData = any, TResponse = any>(
 // ============================================
 // DELETE - 삭제
 // ============================================
-interface UseDeleteOptions extends UseCreateOptions {}
+interface UseDeleteOptions extends UseCreateOptions {
+    invalidateEndpoint?: boolean; // 삭제 후 endpoint를 무효화할지 여부
+}
 
 export function useDeleteEntity<TResponse = any>(
     endpoint: string,
     options?: UseDeleteOptions,
-    axiosInstance: AxiosInstance = apiClient,
+    axiosInstance: AxiosInstance = apiClient
 ) {
     const queryClient = useQueryClient();
 
     return useMutation<TResponse, Error, string>({
+        // id를 받아서 삭제
         mutationFn: async (id: string) => {
             const response = await axiosInstance.delete(`${endpoint}/${id}`, {
                 successMessage: options?.successMessage ?? true,
             } as any);
-            return response.data;
+            return response.data; // 삭제 후 응답 데이터를 반환
         },
+        // 삭제 성공 시 캐시 무효화 및 콜백 호출
         onSuccess: (data) => {
-            // 리스트 캐시 무효화
-            queryClient.invalidateQueries({ queryKey: [endpoint] });
+            // 기본 엔드포인트 캐시 무효화
+            if (options?.invalidateEndpoint !== false) {
+                queryClient.invalidateQueries({ queryKey: [endpoint] });
+            }
 
             // 추가 무효화
             if (options?.invalidateKeys) {
@@ -237,13 +244,16 @@ export function useDeleteEntity<TResponse = any>(
 export function useReplaceEntity<TData = any, TResponse = any>(
     endpoint: string,
     options?: UseUpdateOptions,
-    axiosInstance: AxiosInstance = apiClient,
+    axiosInstance: AxiosInstance = apiClient
 ) {
     const queryClient = useQueryClient();
 
     return useMutation<TResponse, Error, { id: string; data: TData }>({
         mutationFn: async ({ id, data }) => {
-            const response = await axiosInstance.patch(`${endpoint}/${id}`, data);
+            const response = await axiosInstance.patch(
+                `${endpoint}/${id}`,
+                data
+            );
             return response.data;
         },
         onSuccess: (data, variables) => {

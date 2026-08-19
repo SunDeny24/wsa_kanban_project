@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEntityQuery } from "@/lib/hooks/useEntity";
+import { useEntityQuery, useDeleteEntity } from "@/lib/hooks/useEntity";
 import type { Card } from "@/features/cards/types";
 import { formatDateTime } from "@/lib/utils/dateFormat";
 import {
@@ -14,9 +14,11 @@ import {
 } from "@/features/cards/constants";
 import { useState } from "react";
 import { CardEditForm } from "@/features/cards/components/CardEditForm";
+import { ConfirmModal } from "@/components/common/ConfirmModal";
 
 interface CardDetailProps {
     cardId: string;
+    projectId: string;
     onClose: () => void;
 }
 
@@ -25,17 +27,35 @@ interface DetailItemProps {
     value: React.ReactNode;
 }
 
-export const CardDetail = ({ cardId, onClose }: CardDetailProps) => {
+export const CardDetail = ({ cardId, projectId, onClose }: CardDetailProps) => {
     const [isEditing, setIsEditing] = useState(false); // 편집 모드 상태
-    // 단건 조회 API 호출
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // 삭제 모달 상태
+
+    /* 단건 조회 API 호출 */
     const {
         data: card,
         isLoading,
         isError,
     } = useEntityQuery<Card>("/cards", cardId);
 
+    /* 카드 삭제 API */
+    const deleteCard = useDeleteEntity<void>("/cards", {
+        invalidateEndpoint: false, // 단건 조회시 다시 호출 방지
+        invalidateKeys: [[`/projects/${projectId}/cards`]], // 갱신이 필요한 카드 리스트 무효화
+        onSuccessCallback: () => {
+            //모달 닫기
+            setIsDeleteModalOpen(false);
+            onClose();
+        },
+    });
+
+    /* 카드 삭제 함수 */
+    const handleDelete = () => {
+        deleteCard.mutate(cardId);
+    };
+
     // 확인용 log
-    //console.log("[CardDetail] 요청 cardId:", cardId);
+    // console.log("[CardDetail] 요청 cardId:", cardId);
 
     if (isLoading) {
         return <div>카드를 불러오는 중...</div>;
@@ -79,14 +99,23 @@ export const CardDetail = ({ cardId, onClose }: CardDetailProps) => {
                         </span>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                         {!isEditing && (
-                            <button
-                                type="button"
-                                onClick={() => setIsEditing(true)}
-                                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                                수정
-                            </button>
+                            <div className={"flex gap-2"}>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditing(true)}
+                                    className="rounded-lg bg-blue-100 px-4 py-2 text-sm font-medium text-blue-600">
+                                    수정
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setIsDeleteModalOpen(true)}
+                                    className="rounded-lg px-4 py-2 text-sm font-medium bg-red-100 text-red-600">
+                                    삭제
+                                </button>
+                            </div>
                         )}
                         <button
                             type="button"
@@ -215,6 +244,19 @@ export const CardDetail = ({ cardId, onClose }: CardDetailProps) => {
                     </div>
                 )}
             </div>
+
+            {/* 공통 팝업 */}
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                title="카드를 삭제하시겠습니까?"
+                description={`카드와 관련된 모든 데이터가 함께 삭제됩니다.
+                        삭제된 데이터는 복구할 수 없습니다.`}
+                confirmText="삭제"
+                cancelText="취소"
+                variant="danger"
+                onConfirm={handleDelete}
+                onCancel={() => setIsDeleteModalOpen(false)}
+            />
         </div>
     );
 };
