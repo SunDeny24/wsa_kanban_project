@@ -52,7 +52,6 @@ export const CardList = ({ projectId }: KanbanBoardProps) => {
         (card) => card.status === selectedStatus
     );
 
-    console.log("selectedCardId: ", selectedCardId);
     return (
         <div className="flex min-h-full flex-col">
             {/* 상단 */}

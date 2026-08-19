@@ -2,7 +2,7 @@ import { CircleUserRound } from "lucide-react";
 
 import type { Card } from "@/features/cards/types";
 
-import { priorityClassName, priorityLabel } from "@/features/cards/constants";
+import { priorityStyle, priorityLabel } from "@/features/cards/constants";
 
 interface MobileKanbanCardProps {
     card: Card;
@@ -32,7 +32,7 @@ export const MobileKanbanCard = ({ card, onClick }: MobileKanbanCardProps) => {
 
                 <span
                     className={` shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-semibold
-                    ${priorityClassName[card.priorityType]}
+                    ${priorityStyle[card.priorityType]}
                   `}>
                     {priorityLabel[card.priorityType]}
                 </span>

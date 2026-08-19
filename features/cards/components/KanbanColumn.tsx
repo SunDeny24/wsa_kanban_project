@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import type { Card, CardStatus } from "@/features/cards/types";
 import { KanbanCard } from "./KanbanCard";
 import { cardStatusLabel } from "@/features/cards/constants";
+import { statusStyle } from "@/features/cards/constants";
 
 interface KanbanColumnProps {
     status: CardStatus;
@@ -11,44 +12,6 @@ interface KanbanColumnProps {
     onCreateCard: () => void;
     onCardClick: (cardId: string) => void;
 }
-// 컬럼별 스타일 정의
-const columnStyle: Record<
-    CardStatus,
-    {
-        background: string;
-        border: string;
-        title: string;
-        count: string;
-    }
-> = {
-    TODO: {
-        background: "bg-green-50",
-        border: "border-green-100",
-        title: "text-green-700",
-        count: "bg-green-100 text-green-600",
-    },
-
-    IN_PROGRESS: {
-        background: "bg-orange-50",
-        border: "border-orange-100",
-        title: "text-orange-700",
-        count: "bg-orange-100 text-orange-600",
-    },
-
-    HOLD: {
-        background: "bg-violet-50",
-        border: "border-violet-100",
-        title: "text-violet-700",
-        count: "bg-violet-100 text-violet-600",
-    },
-
-    DONE: {
-        background: "bg-rose-50",
-        border: "border-rose-100",
-        title: "text-rose-700",
-        count: "bg-rose-100 text-rose-600",
-    },
-};
 
 export const KanbanColumn = ({
     status,
@@ -56,7 +19,7 @@ export const KanbanColumn = ({
     onCreateCard,
     onCardClick,
 }: KanbanColumnProps) => {
-    const style = columnStyle[status];
+    const style = statusStyle[status];
 
     return (
         <section

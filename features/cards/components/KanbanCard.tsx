@@ -5,7 +5,7 @@ import type { Card } from "@/features/cards/types";
 import { formatDateTime } from "@/lib/utils/dateFormat";
 
 import {
-    priorityClassName,
+    priorityStyle,
     priorityLabel,
     supportTypeLabel,
 } from "@/features/cards/constants";
@@ -29,7 +29,11 @@ export const KanbanCard = ({ card, onClick }: KanbanCardProps) => {
                 </h3>
 
                 <span
-                    className={` shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-semibold ${priorityClassName[card.priorityType]} `}>
+                    className={` shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-semibold 
+                            ${priorityStyle[card.priorityType].background} 
+                            ${priorityStyle[card.priorityType].text}  
+                            ${priorityStyle[card.priorityType].border}
+                            `}>
                     {priorityLabel[card.priorityType]}
                 </span>
             </div>

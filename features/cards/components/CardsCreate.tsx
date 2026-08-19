@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { ErrorModal } from '@/components/common/ErrorModal';
-import {Card, CardCreateRequest } from '@/features/cards/types';
-import { useCreateEntityForm } from '@/lib/hooks/useQueryForm';
-import {CardsForm} from "@/features/cards/components/CardsForm";
+import { useEffect } from "react";
+import { ErrorModal } from "@/components/common/ErrorModal";
+import { Card, CardCreateRequest } from "@/features/cards/types";
+import { useCreateEntityForm } from "@/lib/hooks/useQueryForm";
+import { CardsForm } from "@/features/cards/components/CardsForm";
 
 interface CardsCreateProps {
     projectId: string;
@@ -12,9 +12,7 @@ interface CardsCreateProps {
     onClose: () => void;
 }
 
-
 export const CardsCreate = ({ projectId, open, onClose }: CardsCreateProps) => {
-
     const cardsEndpoint = `/projects/${projectId}/cards`;
     const {
         register,
@@ -28,13 +26,13 @@ export const CardsCreate = ({ projectId, open, onClose }: CardsCreateProps) => {
         formOptions: {
             defaultValues: {
                 itemId: undefined,
-                title: '',
-                description: '',
-                priorityType: 'MEDIUM',
-                supportType: 'NONE',
-                assigner: '',
-                assignee: '',
-                occurredAt: '',
+                title: "",
+                description: "",
+                priorityType: "MEDIUM",
+                supportType: "NONE",
+                assigner: "",
+                assignee: "",
+                occurredAt: "",
             },
         },
         mutationOptions: {
@@ -52,15 +50,16 @@ export const CardsCreate = ({ projectId, open, onClose }: CardsCreateProps) => {
 
         // ESC 키를 눌러 모달을 닫는 이벤트 핸들러 등록
         const handleEscape = (event: KeyboardEvent) => {
-            if (event.key === 'Escape' && !isPending && !errorResponse) onClose();
+            if (event.key === "Escape" && !isPending && !errorResponse)
+                onClose();
         };
 
-        document.addEventListener('keydown', handleEscape);
-        document.body.style.overflow = 'hidden';
+        document.addEventListener("keydown", handleEscape);
+        document.body.style.overflow = "hidden";
 
         return () => {
-            document.removeEventListener('keydown', handleEscape);
-            document.body.style.overflow = '';
+            document.removeEventListener("keydown", handleEscape);
+            document.body.style.overflow = "";
         };
     }, [open, isPending, errorResponse, onClose]);
 
@@ -78,8 +77,7 @@ export const CardsCreate = ({ projectId, open, onClose }: CardsCreateProps) => {
             role="dialog"
             aria-modal="true"
             aria-labelledby="project-create-title"
-            className="fixed inset-0 z-40 flex items-center justify-center overflow-y-auto p-4 sm:p-6"
-        >
+            className="fixed inset-0 z-40 flex items-center justify-center overflow-y-auto p-4 sm:p-6">
             <button
                 type="button"
                 aria-label="칸반 보드 생성 모달 닫기"
@@ -89,14 +87,17 @@ export const CardsCreate = ({ projectId, open, onClose }: CardsCreateProps) => {
 
             <section className="relative my-auto w-full max-w-2xl overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl">
                 <header className="flex items-center justify-between border-b border-gray-200 px-5 py-4 sm:px-6">
-                    <h1 id="project-create-title" className="text-xl font-bold text-gray-900">칸반 보드 생성</h1>
+                    <h1
+                        id="project-create-title"
+                        className="text-xl font-bold text-gray-900">
+                        카드 생성
+                    </h1>
                     <button
                         type="button"
                         onClick={closeModal}
                         disabled={isPending}
                         aria-label="칸반 보드 생성 모달 닫기"
-                        className="rounded-md p-1.5 text-xl leading-none text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
-                    >
+                        className="rounded-md p-1.5 text-xl leading-none text-gray-400 transition hover:bg-gray-100 hover:text-gray-700">
                         ×
                     </button>
                 </header>

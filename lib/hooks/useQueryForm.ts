@@ -10,7 +10,13 @@ import {
     type PathValue,
 } from "react-hook-form";
 import { type AxiosInstance } from "axios";
-import { useEntityQuery, useEntityListQuery, useCreateEntity, useUpdateEntity, usePatchEntity } from "./useEntity";
+import {
+    useEntityQuery,
+    useEntityListQuery,
+    useCreateEntity,
+    useUpdateEntity,
+    usePatchEntity,
+} from "./useEntity";
 import { getErrorResponse } from "@/lib/api/error";
 import { type ErrorResponse } from "@/types/api";
 
@@ -24,18 +30,21 @@ export function useCreateEntityForm<
     endpoint: string,
     options?: {
         formOptions?: UseFormProps<TData>; //입력 폼 옵션
-        mutationOptions?: { // 생성 mutation 옵션
+        mutationOptions?: {
+            // 생성 mutation 옵션
             onSuccessCallback?: (data: TResponse) => void;
         };
         axiosInstance?: AxiosInstance; // axios 인스턴스 옵션
-    },
+    }
 ) {
     const form = useForm<TData>(options?.formOptions);
-    const [errorResponse, setErrorResponse] = useState<ErrorResponse | null>(null);
+    const [errorResponse, setErrorResponse] = useState<ErrorResponse | null>(
+        null
+    );
     const mutation = useCreateEntity<TData, TResponse>(
         endpoint,
         options?.mutationOptions,
-        options?.axiosInstance,
+        options?.axiosInstance
     );
 
     const onSubmit = form.handleSubmit((data: TData) => {
@@ -96,30 +105,39 @@ export function useCreateEntityForm<
 // UPDATE Form (수정하기) - useQuery + useForm 결합
 // ============================================
 export function useUpdateEntityForm<
-    TData extends FieldValues = FieldValues,
-    TResponse = TData,
-    TQueryData = TData,
+    TData extends FieldValues = FieldValues, //수정 폼에서 사용하는 객체데이터의 타입
+    TResponse = TData, // 수정 성공 후 서버에서 반환되는 데이터 타입
+    TQueryData = TData, // 수정 폼에서 조회되는 데이터 타입
 >(
-    endpoint: string,
-    id: string,
+    endpoint: string, // API 엔드포인트
+    id: string, // 수정할 엔티티의 ID
     options?: {
-        formOptions?: UseFormProps<TData>;
+        formOptions?: UseFormProps<TData>; // 입력 폼 옵션
         mutationOptions?: {
-            onSuccessCallback?: (data: TResponse) => void;
+            //수정 API 호출 옵션
+            onSuccessCallback?: (data: TResponse) => void; // 수정 API 성공 후 콜백
         };
         queryOptions?: {
+            //기존 데이터 조회 옵션
             enabled?: boolean;
         };
-        mapQueryData?: (data: TQueryData) => TData;
-        axiosInstance?: AxiosInstance;
-    },
+        mapQueryData?: (data: TQueryData) => TData; // 조회된 데이터를 수정 폼에 맞게 변환하는 함수
+        axiosInstance?: AxiosInstance; // axios 인스턴스 옵션
+    }
 ) {
     // 1. Query로 기존 데이터 가져오기 (GET)
-    const query = useEntityQuery<TQueryData>(endpoint, id, options?.queryOptions, options?.axiosInstance);
+    const query = useEntityQuery<TQueryData>(
+        endpoint,
+        id,
+        options?.queryOptions,
+        options?.axiosInstance
+    );
 
     // 2. useForm 초기화
     const form = useForm<TData>(options?.formOptions);
-    const [errorResponse, setErrorResponse] = useState<ErrorResponse | null>(null);
+    const [errorResponse, setErrorResponse] = useState<ErrorResponse | null>(
+        null
+    );
     const mapQueryData = options?.mapQueryData;
 
     // 3. 데이터 로드되면 form에 자동으로 채우기
@@ -127,7 +145,7 @@ export function useUpdateEntityForm<
         if (query.data) {
             const formData = mapQueryData
                 ? mapQueryData(query.data)
-                : query.data as unknown as TData;
+                : (query.data as unknown as TData);
             form.reset(formData);
         }
     }, [query.data, form, mapQueryData]);
@@ -136,7 +154,7 @@ export function useUpdateEntityForm<
     const mutation = useUpdateEntity<TData, TResponse>(
         endpoint,
         options?.mutationOptions,
-        options?.axiosInstance,
+        options?.axiosInstance
     );
 
     // 5. Submit handler
@@ -216,21 +234,17 @@ export function useListEntityForm<
             page?: number;
             size?: number;
         };
-
-    },
+    }
 ) {
     // 1. 검색/필터 폼
     const form = useForm<TFilterData>(options?.formOptions);
 
     // 2. api 요청에 사용될 필터 데이터를 상태로 관리
-    const [appliedFilters, setAppliedFilters] =
-        useState<TFilterData>(
-            (options?.formOptions?.defaultValues ?? {}) as TFilterData,
-        );
-    // 3. 페이지네이션 상태관리 - API page는 0 부터 시작
-    const [page, setPage] = useState(
-        options?.pagination?.page ?? 0,
+    const [appliedFilters, setAppliedFilters] = useState<TFilterData>(
+        (options?.formOptions?.defaultValues ?? {}) as TFilterData
     );
+    // 3. 페이지네이션 상태관리 - API page는 0 부터 시작
+    const [page, setPage] = useState(options?.pagination?.page ?? 0);
 
     // 4. 목록 조회
     const query = useEntityListQuery<TData>(
@@ -239,7 +253,7 @@ export function useListEntityForm<
             ...appliedFilters,
             page,
         },
-        options?.queryOptions,
+        options?.queryOptions
     );
 
     // 5. 검색 - 새로운 검색조건 적용시 첫페이지부터 조회
@@ -250,8 +264,8 @@ export function useListEntityForm<
 
     // 6. 검색조건 초기화 핸들러
     const onReset = () => {
-        const defaultValues =
-            (options?.formOptions?.defaultValues ?? {}) as TFilterData;
+        const defaultValues = (options?.formOptions?.defaultValues ??
+            {}) as TFilterData;
 
         form.reset(defaultValues);
 
@@ -262,7 +276,7 @@ export function useListEntityForm<
     // 7. 특정 검색 조건 변경 - 필터 변경시 첫 페이지부터 조회
     const setFilter = <K extends Path<TFilterData>>(
         key: K,
-        value: PathValue<TFilterData, K>,
+        value: PathValue<TFilterData, K>
     ) => {
         form.setValue(key, value);
 
@@ -281,10 +295,7 @@ export function useListEntityForm<
     };
 
     // 9. 에러 응답 처리
-    const errorResponse = query.error
-        ? getErrorResponse(query.error)
-        : null;
-
+    const errorResponse = query.error ? getErrorResponse(query.error) : null;
 
     return {
         // Form 메서드들 (검색/필터용)
@@ -332,10 +343,13 @@ export function usePatchEntityForm<
     options?: {
         formOptions?: UseFormProps<TData>;
         mutationOptions?: Parameters<typeof usePatchEntity>[1];
-    },
+    }
 ) {
     const form = useForm<TData>(options?.formOptions);
-    const mutation = usePatchEntity<TData, TResponse>(endpoint, options?.mutationOptions);
+    const mutation = usePatchEntity<TData, TResponse>(
+        endpoint,
+        options?.mutationOptions
+    );
 
     const onSubmit = form.handleSubmit((data) => {
         mutation.mutate(data);
