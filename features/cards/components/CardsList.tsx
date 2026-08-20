@@ -4,12 +4,14 @@
 import React, { useState } from "react";
 import { AlertCircle, Plus } from "lucide-react";
 import { useEntityListQuery } from "@/lib/hooks/useEntity";
-import type { Card, CardStatus } from "@/features/cards/types";
-import { cardStatusLabel } from "@/features/cards/constants";
+import { Card, CardStatus, cardStatusList } from "@/features/cards/types";
+import { cardStatusLabel, statusStyle } from "@/features/cards/constants";
 import MobileKanbanCard from "@/features/cards/components/MobileKanbanCard";
 import KanbanColumn from "@/features/cards/components/KanbanColumn";
 import { CardsCreate } from "@/features/cards/components/CardsCreate";
 import CardDetail from "@/features/cards/components/CardDetail";
+import { DragDropProvider } from "@dnd-kit/react";
+import { useCardStatus } from "@/features/cards/hooks/useCardStatus";
 
 interface KanbanBoardProps {
     projectId: string;
@@ -22,9 +24,46 @@ export const CardList = ({ projectId }: KanbanBoardProps) => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false); // 카드 생성 모달 상태
     const [selectedStatus, setSelectedStatus] = useState<CardStatus>("TODO"); // 선택된 카드 상태
     const [selectedCardId, setSelectedCardId] = useState<string | null>(null); // 선택된 카드 ID
+    // 카드 목록 조회
     const { data, isLoading, error } = useEntityListQuery<CardListResponse>(
         `/projects/${projectId}/cards`
     );
+
+    // 상태 변경 API 호출
+    const { mutate: changeStatus } = useCardStatus(projectId);
+
+    /**
+     * DND 종료
+     */
+    const handleDragEnd = (event: any) => {
+        // ESC 등으로 drag가 취소된 경우
+        if (event.canceled) return;
+
+        const { source, target } = event.operation; // source: 드래그 시작, target: 드래그 종료
+        if (!source || !target) return; // 컬럼이 아닌 곳에 Drop한 경우
+        const cardId = String(source.id); // 움직인 카드 ID
+        const nextStatus = String(target.id) as CardStatus; // Drop한 컬럼 ID
+
+        // 타깃이 유효한 상태인지 확인
+        if (!cardStatusList.includes(nextStatus)) {
+            return;
+        }
+        // 기존 카드 찾기
+        const card = cards?.find((card) => card.id === cardId);
+        if (!card) return;
+        // 같은 컬럼이면 API 호출하지 않음
+        if (card.status === nextStatus) {
+            return;
+        }
+        console.log("DND 상태 변경:", card.status, "→", nextStatus);
+
+        changeStatus({
+            id: cardId,
+            data: {
+                status: nextStatus,
+            },
+        });
+    };
 
     if (isLoading) {
         return (
@@ -53,7 +92,7 @@ export const CardList = ({ projectId }: KanbanBoardProps) => {
     );
 
     return (
-        <div className="flex min-h-full flex-col">
+        <div className="flex min-h-full flex-col ">
             {/* 상단 */}
             <div className="mb-5 flex items-center justify-between gap-3">
                 <div>
@@ -100,28 +139,34 @@ export const CardList = ({ projectId }: KanbanBoardProps) => {
                                     key={status}
                                     type="button"
                                     onClick={() => setSelectedStatus(status)}
-                                    className={` relative flex items-center gap-1.5 px-1 pb-3 text-sm transition
+                                    className={` relative flex items-center gap-1.5 px-1 pb-3
+                                                text-sm transition
                                                 ${
                                                     isActive
-                                                        ? "font-semibold text-zinc-900"
+                                                        ? `font-semibold ${statusStyle[status].title}`
                                                         : "text-zinc-400 hover:text-zinc-700"
                                                 }
-                                               `}>
+                                            `}>
                                     {cardStatusLabel[status]}
                                     <span
-                                        className={` rounded-full px-1.5 py-0.5 text-[10px]
-                                              ${
-                                                  isActive
-                                                      ? "bg-zinc-900 text-white"
-                                                      : "bg-zinc-200 text-zinc-500"
-                                              }
-                                            `}>
+                                        className={`
+                                            rounded-full px-1.5 py-0.5 text-[10px]
+                                            ${
+                                                isActive
+                                                    ? statusStyle[status].count
+                                                    : "bg-zinc-200 text-zinc-500"
+                                            }
+                                        `}>
                                         {count}
                                     </span>
 
                                     {/* 선택된 탭 밑줄 */}
                                     {isActive && (
-                                        <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-zinc-900" />
+                                        <span
+                                            className={` absolute inset-x-0 bottom-0 h-0.5 rounded-full
+                                                ${statusStyle[status].indicator}
+                                            `}
+                                        />
                                     )}
                                 </button>
                             );
@@ -166,33 +211,37 @@ export const CardList = ({ projectId }: KanbanBoardProps) => {
             </div>
 
             {/* ---------------------태블릿 / PC ------------------------ */}
-            <div className="hidden md:block">
-                <div className=" grid grid-cols-4 gap-2 lg:gap-3 ">
-                    {columns.map((status) => {
-                        const columnCards = cards.filter(
-                            (card) => card.status === status
-                        );
+            <DragDropProvider onDragEnd={handleDragEnd}>
+                <div className="hidden md:block">
+                    <div className="grid w-full grid-cols-4 gap-2 lg:gap-3 ">
+                        {columns.map((status) => {
+                            const columnCards = cards.filter(
+                                (card) => card.status === status
+                            );
 
-                        return (
-                            <KanbanColumn
-                                key={status}
-                                status={status}
-                                cards={columnCards}
-                                onCreateCard={() => setIsCreateModalOpen(true)}
-                                onCardClick={setSelectedCardId}
-                            />
-                        );
-                    })}
+                            return (
+                                <KanbanColumn
+                                    key={status}
+                                    status={status}
+                                    cards={columnCards}
+                                    onCreateCard={() =>
+                                        setIsCreateModalOpen(true)
+                                    }
+                                    onCardClick={setSelectedCardId}
+                                />
+                            );
+                        })}
+                    </div>
                 </div>
-            </div>
+            </DragDropProvider>
 
-            {/* 목록의 검색 조건을 유지한 채 생성 폼을 모달로 표시합니다. */}
+            {/* 목록의 검색 조건을 유지한 생성폼 모달 */}
             <CardsCreate
                 projectId={projectId}
                 open={isCreateModalOpen}
                 onClose={() => setIsCreateModalOpen(false)}
             />
-
+            {/* 카드 상세 정보 모달 */}
             {selectedCardId && (
                 <CardDetail
                     cardId={selectedCardId}

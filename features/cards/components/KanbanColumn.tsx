@@ -5,6 +5,7 @@ import type { Card, CardStatus } from "@/features/cards/types";
 import { KanbanCard } from "./KanbanCard";
 import { cardStatusLabel } from "@/features/cards/constants";
 import { statusStyle } from "@/features/cards/constants";
+import { useDroppable } from "@dnd-kit/react";
 
 interface KanbanColumnProps {
     status: CardStatus;
@@ -20,20 +21,35 @@ export const KanbanColumn = ({
     onCardClick,
 }: KanbanColumnProps) => {
     const style = statusStyle[status];
+    const { ref, isDropTarget } = useDroppable({
+        id: status,
+        type: "CARD",
+        data: {
+            status: status,
+        },
+    });
 
     return (
         <section
-            className={`flex min-h-[620px] flex-col rounded-2xl border
-            ${style.background}
-            ${style.border}
+            ref={ref}
+            className={`flex min-h-[620px] flex-col rounded-2xl border  transition-all duration-150
+            ${isDropTarget ? `${style.border} ${style.background}` : "border-gray-200 bg-white"}
           `}>
             {/* 컬럼 헤더 */}
-            <div className="flex h-12 items-center gap-2 px-4">
-                {/* 컬럼 제목 */}
-                <h2 className={`text-xs font-semibold ${style.title}`}>
+            <div className="flex h-12 items-center gap-2 px-4 border-b border-zinc-100 mb-4 ">
+                {/* 상태 색상 점 */}
+                <span
+                    className={`
+                        h-2 w-2 shrink-0 rounded-full
+                        bg-current
+                        ${style.title}
+                    `}
+                />
+                {/* - 컬럼 제목 */}
+                <h2 className={`text-sm font-semibold ${style.title}`}>
                     {cardStatusLabel[status]}
                 </h2>
-                {/* 카드 수 */}
+                {/* - 카드 수 */}
                 <span
                     className={` inline-flex min-w-6 items-center justify-center
                                  rounded-full px-2 py-0.5
@@ -45,7 +61,7 @@ export const KanbanColumn = ({
             </div>
 
             {/* 카드 영역 */}
-            <div className="flex flex-1 flex-col gap-2 px-2 pb-2">
+            <div className="flex flex-1 flex-col gap-3 px-5 pb-5 ">
                 {cards.map((card) => (
                     <KanbanCard
                         key={card.id}

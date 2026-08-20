@@ -68,6 +68,7 @@ export const statusStyle: Record<
         border: string;
         title: string;
         count: string;
+        indicator: string;
     }
 > = {
     TODO: {
@@ -75,6 +76,7 @@ export const statusStyle: Record<
         border: "border-green-100",
         title: "text-green-700",
         count: "bg-green-100 text-green-600",
+        indicator: "bg-green-500",
     },
 
     IN_PROGRESS: {
@@ -82,6 +84,7 @@ export const statusStyle: Record<
         border: "border-orange-100",
         title: "text-orange-700",
         count: "bg-orange-100 text-orange-600",
+        indicator: "bg-orange-500",
     },
 
     HOLD: {
@@ -89,6 +92,7 @@ export const statusStyle: Record<
         border: "border-violet-100",
         title: "text-violet-700",
         count: "bg-violet-100 text-violet-600",
+        indicator: "bg-violet-500",
     },
 
     DONE: {
@@ -96,5 +100,6 @@ export const statusStyle: Record<
         border: "border-rose-100",
         title: "text-rose-700",
         count: "bg-rose-100 text-rose-600",
+        indicator: "bg-rose-500",
     },
 };
