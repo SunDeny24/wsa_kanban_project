@@ -6,17 +6,16 @@ import { useEntityQuery, useDeleteEntity } from "@/lib/hooks/useEntity";
 import type { Card } from "@/features/cards/types";
 import { formatDateTime } from "@/lib/utils/dateFormat";
 import {
-    cardStatusLabel,
     priorityLabel,
     supportTypeLabel,
     priorityStyle,
-    statusStyle,
 } from "@/features/cards/constants";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CardEditForm } from "@/features/cards/components/CardEditForm";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
 import { CardProcessForm } from "@/features/cards/components/CardProcessForm";
-import { Pencil, Trash2, X } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, X } from "lucide-react";
+import { CardStatusSelect } from "@/features/cards/components/CardStatusSelect";
 
 interface CardDetailProps {
     cardId: string;
@@ -32,6 +31,12 @@ interface DetailItemProps {
 export const CardDetail = ({ cardId, projectId, onClose }: CardDetailProps) => {
     const [isEditing, setIsEditing] = useState(false); // 편집 모드 상태
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // 삭제 모달 상태
+    // 더보기 메뉴
+    const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+    // 처리 정보가 수정 중인지 여부
+    const [isProcessDirty, setIsProcessDirty] = useState(false);
+    // 더보기 메뉴 ref
+    const moreMenuRef = useRef<HTMLDivElement>(null);
 
     /* 단건 조회 API 호출 */
     const {
@@ -56,6 +61,52 @@ export const CardDetail = ({ cardId, projectId, onClose }: CardDetailProps) => {
         deleteCard.mutate(cardId);
     };
 
+    const handleOpenDeleteModal = () => {
+        setIsMoreMenuOpen(false);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleStartEdit = () => {
+        // 처리 정보를 작성 중이라면
+        // 기본 정보 수정으로 넘어가지 않도록 막음
+        if (isProcessDirty) {
+            return;
+        }
+
+        setIsEditing(true);
+        setIsMoreMenuOpen(false);
+    };
+
+    /*
+     * 더보기 메뉴 바깥 클릭 / ESC 처리
+     */
+    useEffect(() => {
+        if (!isMoreMenuOpen) return;
+
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                moreMenuRef.current &&
+                !moreMenuRef.current.contains(event.target as Node)
+            ) {
+                setIsMoreMenuOpen(false);
+            }
+        };
+
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                setIsMoreMenuOpen(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        document.addEventListener("keydown", handleEscape);
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+            document.removeEventListener("keydown", handleEscape);
+        };
+    }, [isMoreMenuOpen]);
+
     // 확인용 log
     // console.log("[CardDetail] 요청 cardId:", cardId);
 
@@ -68,7 +119,6 @@ export const CardDetail = ({ cardId, projectId, onClose }: CardDetailProps) => {
 
     if (!card) return null;
 
-    const statusClassName = statusStyle[card.status];
     const priorityClassName = priorityStyle[card.priorityType];
 
     // 카드 상세 정보 항목 컴포넌트
@@ -88,76 +138,169 @@ export const CardDetail = ({ cardId, projectId, onClose }: CardDetailProps) => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 ">
             <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
                 {/* Header - 수정버튼, 삭제버튼, 닫기버튼 */}
-                <div className="flex shrink-0 justify-end gap-2 px-6 py-4">
-                    {!isEditing && (
-                        <>
+
+                <header className="shrink-0 border-b border-gray-100 px-4 py-4 sm:px-6">
+                    <div className="flex items-start gap-3">
+                        {/* 제목 + 상태 */}
+                        <div className="min-w-0 flex-1">
+                            <h2
+                                className="
+                                    break-words
+                                    text-lg font-semibold
+                                    leading-7 text-gray-900
+                                    sm:text-xl
+                                ">
+                                {card.title}
+                            </h2>
+
+                            {!isEditing && (
+                                <div className="mt-2">
+                                    <CardStatusSelect
+                                        cardId={card.id}
+                                        projectId={card.projectId}
+                                        status={card.status}
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 우측 액션 */}
+                        <div className="flex shrink-0 items-center gap-1">
+                            {!isEditing && (
+                                <>
+                                    {/* 기본 정보 수정 */}
+                                    <button
+                                        type="button"
+                                        onClick={handleStartEdit}
+                                        disabled={isProcessDirty}
+                                        aria-label="기본 정보 수정"
+                                        title={
+                                            isProcessDirty
+                                                ? "처리 정보를 저장하거나 취소한 후 수정할 수 있습니다."
+                                                : "기본 정보 수정"
+                                        }
+                                        className={`
+                                            inline-flex h-9 items-center
+                                            justify-center gap-1.5
+                                            rounded-lg
+                                            px-2.5
+                                            text-sm font-medium
+                                            transition
+                                            sm:px-3
+
+                                            ${
+                                                isProcessDirty
+                                                    ? `
+                                                        cursor-not-allowed
+                                                        bg-gray-50
+                                                        text-gray-300
+                                                    `
+                                                    : `
+                                                        bg-blue-50
+                                                        text-blue-600
+                                                        hover:bg-blue-100
+                                                    `
+                                            }
+                                        `}>
+                                        <Pencil className="h-4 w-4" />
+
+                                        <span className="hidden sm:inline">
+                                            기본 정보 수정
+                                        </span>
+                                    </button>
+
+                                    {/* 더보기 */}
+                                    <div ref={moreMenuRef} className="relative">
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setIsMoreMenuOpen(
+                                                    (prev) => !prev
+                                                )
+                                            }
+                                            aria-label="더보기"
+                                            aria-haspopup="menu"
+                                            aria-expanded={isMoreMenuOpen}
+                                            className="
+                                                inline-flex h-9 w-9
+                                                items-center justify-center
+                                                rounded-lg
+                                                border border-gray-200
+                                                bg-white
+                                                text-gray-500
+                                                transition
+                                                hover:bg-gray-50
+                                                hover:text-gray-700
+                                            ">
+                                            <MoreHorizontal className="h-4 w-4" />
+                                        </button>
+
+                                        {isMoreMenuOpen && (
+                                            <div
+                                                role="menu"
+                                                className="
+                                                    absolute right-0 top-11
+                                                    z-50
+                                                    w-36
+                                                    overflow-hidden
+                                                    rounded-xl
+                                                    border border-gray-200
+                                                    bg-white
+                                                    p-1
+                                                    shadow-lg
+                                                ">
+                                                <button
+                                                    type="button"
+                                                    role="menuitem"
+                                                    onClick={
+                                                        handleOpenDeleteModal
+                                                    }
+                                                    className="
+                                                        flex w-full
+                                                        items-center gap-2
+                                                        rounded-lg
+                                                        px-3 py-2
+                                                        text-left text-sm
+                                                        font-medium
+                                                        text-red-600
+                                                        transition
+                                                        hover:bg-red-50
+                                                    ">
+                                                    <Trash2 className="h-4 w-4" />
+                                                    카드 삭제
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+
+                            {/* 닫기 */}
                             <button
                                 type="button"
-                                onClick={() => setIsEditing(true)}
+                                onClick={onClose}
+                                aria-label="닫기"
                                 className="
-                                inline-flex h-9 items-center justify-center gap-1.5
-                                rounded-lg bg-blue-50 px-2.5
-                                text-sm font-medium text-blue-600
-                                transition hover:bg-blue-100
-                                sm:px-4
-                            ">
-                                <Pencil className="h-4 w-4" />
-                                <span className="hidden sm:inline">수정</span>
+                                    inline-flex h-9 w-9
+                                    items-center justify-center
+                                    rounded-lg
+                                    border border-gray-200
+                                    bg-white
+                                    text-gray-500
+                                    transition
+                                    hover:bg-gray-50
+                                    hover:text-gray-700
+                                ">
+                                <X className="h-4 w-4" />
                             </button>
-
-                            <button
-                                type="button"
-                                onClick={() => setIsDeleteModalOpen(true)}
-                                className="
-                                inline-flex h-9 items-center justify-center gap-1.5
-                                rounded-lg bg-red-50 px-2.5
-                                text-sm font-medium text-red-600
-                                transition hover:bg-red-100
-                                sm:px-4
-                            ">
-                                <Trash2 className="h-4 w-4" />
-                                <span className="hidden sm:inline">삭제</span>
-                            </button>
-                        </>
-                    )}
-
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="
-                        inline-flex h-9 items-center justify-center gap-1.5
-                        rounded-lg border border-gray-300 bg-white px-2.5
-                        text-sm font-medium text-gray-700
-                        transition hover:bg-gray-50
-                        sm:px-4
-                    ">
-                        <X className="h-4 w-4" />
-                        <span className="hidden sm:inline">닫기</span>
-                    </button>
-                </div>
-
-                {/* 제목 영역 */}
-                <div className="shrink-0  px-6 py-5">
-                    <div className="flex items-center gap-3">
-                        <h2 className="min-w-0 flex-1 truncate text-xl font-semibold text-gray-900">
-                            {card.title}
-                        </h2>
-
-                        <span
-                            className={`
-                            shrink-0 rounded-full px-2.5 py-2 text-sm font-semibold
-                            ${statusClassName.background}
-                            ${statusClassName.title}
-                        `}>
-                            {cardStatusLabel[card.status]}
-                        </span>
+                        </div>
                     </div>
-                </div>
-
+                </header>
                 {/* Content */}
                 {isEditing ? (
                     <CardEditForm
                         card={card}
+                        projectId={projectId}
                         onCancel={() => setIsEditing(false)}
                         onSuccess={() => setIsEditing(false)}
                     />
@@ -233,6 +376,7 @@ export const CardDetail = ({ cardId, projectId, onClose }: CardDetailProps) => {
                             <CardProcessForm
                                 card={card}
                                 projectId={projectId}
+                                onDirtyChange={setIsProcessDirty}
                             />
                         </section>
                     </div>

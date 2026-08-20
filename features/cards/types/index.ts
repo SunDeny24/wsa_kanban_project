@@ -2,6 +2,13 @@
 
 export type CardStatus = "TODO" | "IN_PROGRESS" | "HOLD" | "DONE";
 
+export const cardStatusList: CardStatus[] = [
+    "TODO",
+    "IN_PROGRESS",
+    "HOLD",
+    "DONE",
+];
+
 export type PriorityType = "HIGH" | "MEDIUM" | "LOW" | "URGENT";
 
 export type SupportType = "REMOTE" | "ONSITE" | "PHONE" | "NONE";

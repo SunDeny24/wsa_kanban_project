@@ -1,21 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 import type { Card, CardUpdateForm } from "@/features/cards/types";
 import { useUpdateEntityForm } from "@/lib/hooks/useQueryForm";
 import { toCardUpdateRequest } from "@/features/cards/utils/cardMapper";
 import { formatDateTime } from "@/lib/utils/dateFormat";
-import { Save, X } from "lucide-react";
 
 interface CardProcessFormProps {
     card: Card;
     projectId: string;
+    onDirtyChange?: (dirty: boolean) => void;
 }
 
-export const CardProcessForm = ({ card, projectId }: CardProcessFormProps) => {
+export const CardProcessForm = ({
+    card,
+    projectId,
+    onDirtyChange,
+}: CardProcessFormProps) => {
     // input 또는 textarea를 건드렸는지 여부
-    const [isEditing, setIsEditing] = useState(false);
 
     const {
         register,
@@ -41,27 +44,32 @@ export const CardProcessForm = ({ card, projectId }: CardProcessFormProps) => {
             onSuccessCallback: (updatedCard) => {
                 // 저장된 최신 데이터를 새로운 기준값으로 설정
                 reset(toCardUpdateRequest(updatedCard));
-
-                // 상세 모달은 그대로 두고
-                // 저장/취소 버튼만 다시 숨김
-                setIsEditing(false);
             },
         },
     });
 
     // CardDetail의 card가 갱신되면 form도 최신 값으로 동기화
     useEffect(() => {
-        if (isEditing) return;
+        if (isDirty) return;
 
         reset(toCardUpdateRequest(card));
-    }, [card, reset, isEditing]);
+    }, [card, reset, isDirty]);
+
+    /*
+     * 부모 CardDetail에게 처리 정보가 수정 중인지 전달
+     */
+    useEffect(() => {
+        onDirtyChange?.(isDirty);
+
+        return () => {
+            onDirtyChange?.(false);
+        };
+    }, [isDirty, onDirtyChange]);
 
     const handleCancel = () => {
         // 사용자가 수정한 값 버리고
         // 현재 조회된 card 값으로 되돌림
         reset(toCardUpdateRequest(card));
-
-        setIsEditing(false);
     };
 
     return (
@@ -116,9 +124,6 @@ export const CardProcessForm = ({ card, projectId }: CardProcessFormProps) => {
 
                                         return true;
                                     },
-                                    onChange: () => {
-                                        setIsEditing(true);
-                                    },
                                 })}
                             />
 
@@ -169,9 +174,6 @@ export const CardProcessForm = ({ card, projectId }: CardProcessFormProps) => {
                                 message:
                                     "처리 내용은 4096자 이하로 입력해주세요.",
                             },
-                            onChange: () => {
-                                setIsEditing(true);
-                            },
                         })}
                     />
 
@@ -183,41 +185,21 @@ export const CardProcessForm = ({ card, projectId }: CardProcessFormProps) => {
                 </div>
 
                 {/* 실제 값이 변경됐을 때만 버튼 노출 */}
-                {isEditing && isDirty && (
+                {isDirty && (
                     <div className="mt-4 flex justify-end gap-2">
                         <button
                             type="button"
                             onClick={handleCancel}
                             disabled={isPending}
-                            aria-label="수정 취소"
-                            className="
-                inline-flex h-8 items-center justify-center gap-1.5
-                rounded-lg border border-gray-300 bg-white
-                px-2.5 text-xs font-medium text-gray-600
-                transition hover:bg-gray-50
-                disabled:cursor-not-allowed disabled:opacity-50
-                sm:px-3
-            ">
-                            <X className="h-3.5 w-3.5" />
-                            <span className="hidden sm:inline">취소</span>
+                            className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700">
+                            취소
                         </button>
 
                         <button
                             type="submit"
                             disabled={isPending}
-                            aria-label="처리 정보 저장"
-                            className="
-                inline-flex h-8 items-center justify-center gap-1.5
-                rounded-lg bg-gray-900
-                px-2.5 text-xs font-medium text-white
-                transition hover:bg-gray-800
-                disabled:cursor-not-allowed disabled:opacity-50
-                sm:px-3
-            ">
-                            <Save className="h-3.5 w-3.5" />
-                            <span className="hidden sm:inline">
-                                {isPending ? "저장 중..." : "저장"}
-                            </span>
+                            className="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white">
+                            {isPending ? "저장 중..." : "저장"}
                         </button>
                     </div>
                 )}

@@ -4,25 +4,18 @@ import type { Card, CardUpdateForm } from "@/features/cards/types";
 import { useUpdateEntityForm } from "@/lib/hooks/useQueryForm";
 import { priorityLabel, supportTypeLabel } from "@/features/cards/constants";
 import { formatDateTime } from "@/lib/utils/dateFormat";
+import { toCardUpdateRequest } from "@/features/cards/utils/cardMapper";
 
 interface CardEditFormProps {
     card: Card;
+    projectId: string;
     onCancel: () => void;
     onSuccess: () => void;
 }
 
-const toCardUpdateRequest = (card: Card): CardUpdateForm => ({
-    title: card.title,
-    description: card.description ?? undefined,
-    priorityType: card.priorityType,
-    supportType: card.supportType ?? "NONE",
-    assignee: card.assignee ?? undefined,
-    workHours: card.workHours ?? undefined,
-    resolutionNote: card.resolutionNote ?? undefined,
-});
-
 export const CardEditForm = ({
     card,
+    projectId,
     onCancel,
     onSuccess,
 }: CardEditFormProps) => {
@@ -36,6 +29,7 @@ export const CardEditForm = ({
     } = useUpdateEntityForm<CardUpdateForm, Card, Card>("/cards", card.id, {
         mapQueryData: toCardUpdateRequest,
         mutationOptions: {
+            invalidateKeys: [[`/projects/${projectId}/cards`]],
             onSuccessCallback: () => {
                 onSuccess();
             },
