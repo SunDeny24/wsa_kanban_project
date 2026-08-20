@@ -1,36 +1,37 @@
 "use client";
 
 import { useState } from "react";
-import {
-    AlertCircle,
-    CalendarDays,
-    FileText,
-    Plus,
-    RefreshCw,
-} from "lucide-react";
-import {
-    quotationStatusClassName,
-    quotationStatusLabel,
-} from "@/features/quotation/constants";
+import { AlertCircle, FileText, Plus, RefreshCw } from "lucide-react";
+import { ConfirmModal } from "@/components/common/ConfirmModal";
+import { ErrorModal } from "@/components/common/ErrorModal";
 import { QuotationCreate } from "@/features/quotation/components/QuotationCreate";
+import { QuotationTimelineCard } from "@/features/quotation/components/QuotationTimelineCard";
 import type { Project } from "@/features/project/types";
 import type { Quotation } from "@/features/quotation/types";
-import { useEntityListQuery, useEntityQuery } from "@/lib/hooks/useEntity";
+import {
+    useEntityListQuery,
+    useEntityQuery,
+    useUpdateEntity,
+} from "@/lib/hooks/useEntity";
+import { getErrorResponse } from "@/lib/api/error";
+import type { ErrorResponse } from "@/types/api";
 
 interface QuotationListProps {
     projectId: string;
 }
 
-const formatAmount = (amount: number) =>
-    new Intl.NumberFormat("ko-KR", { maximumFractionDigits: 20 }).format(
-        amount
-    );
-
-const formatDate = (date: string | null) => date || "미지정";
+type ConfirmAction = {
+    type: "confirm" | "reject";
+    quotation: Quotation;
+};
 
 export const QuotationList = ({ projectId }: QuotationListProps) => {
     const quotationsEndpoint = `/projects/${projectId}/quotations`;
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(
+        null
+    );
+    const [actionError, setActionError] = useState<ErrorResponse | null>(null);
 
     // 프로젝트가 견적중일 때만 새 리비전을 생성할 수 있습니다.
     const { data: project } = useEntityQuery<Project>("/projects", projectId, {
@@ -45,6 +46,57 @@ export const QuotationList = ({ projectId }: QuotationListProps) => {
         enabled: Boolean(projectId),
     });
 
+    const commonMutationOptions = {
+        invalidateKeys: [[quotationsEndpoint]],
+        onErrorCallback: (mutationError: unknown) =>
+            setActionError(getErrorResponse(mutationError)),
+    };
+
+    // 공통 PATCH 훅의 id에 상태 액션 경로를 포함해 동적 URL을 구성합니다.
+    const sendMutation = useUpdateEntity<void, Quotation>(
+        "/quotations",
+        commonMutationOptions
+    );
+    const rejectMutation = useUpdateEntity<void, Quotation>(
+        "/quotations",
+        commonMutationOptions
+    );
+    const confirmMutation = useUpdateEntity<void, Quotation>("/quotations", {
+        ...commonMutationOptions,
+        // 확정 시 서버가 프로젝트 상태도 변경하므로 상세와 목록을 함께 갱신합니다.
+        invalidateKeys: [[quotationsEndpoint], ["/projects", projectId], ["/projects"]],
+    });
+
+    const handleSend = (quotation: Quotation) => {
+        sendMutation.mutate({ id: `${quotation.id}/send`, data: undefined });
+    };
+
+    const handleConfirmAction = () => {
+        if (!confirmAction) return;
+
+        const { type, quotation } = confirmAction;
+        const mutation = type === "confirm" ? confirmMutation : rejectMutation;
+        mutation.mutate(
+            { id: `${quotation.id}/${type}`, data: undefined },
+            { onSuccess: () => setConfirmAction(null) }
+        );
+    };
+
+    const pendingQuotationId = sendMutation.isPending
+        ? sendMutation.variables?.id.split("/")[0]
+        : confirmMutation.isPending
+          ? confirmMutation.variables?.id.split("/")[0]
+          : rejectMutation.isPending
+            ? rejectMutation.variables?.id.split("/")[0]
+            : undefined;
+    const pendingAction = sendMutation.isPending
+        ? "send"
+        : confirmMutation.isPending
+          ? "confirm"
+          : rejectMutation.isPending
+            ? "reject"
+            : undefined;
+
     if (isLoading) {
         return (
             <div className="flex min-h-64 items-center justify-center rounded-xl border border-zinc-200 bg-white">
@@ -55,6 +107,7 @@ export const QuotationList = ({ projectId }: QuotationListProps) => {
         );
     }
 
+    // 견적 이력 조회 실패 시, 프로젝트 정보와 네트워크 상태를 확인하도록 안내합니다.
     if (error) {
         return (
             <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-xl border border-red-100 bg-white px-6 text-center">
@@ -139,55 +192,28 @@ export const QuotationList = ({ projectId }: QuotationListProps) => {
                                 }`}
                                 aria-hidden="true"
                             />
-                            <article className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
-                                <div className="flex flex-wrap items-start justify-between gap-3">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <h2 className="font-semibold text-zinc-900">
-                                            Revision {quotation.revision}
-                                        </h2>
-                                        {index === 0 && (
-                                            <span className="rounded-full bg-blue-600 px-2 py-0.5 text-[11px] font-semibold text-white">
-                                                최신
-                                            </span>
-                                        )}
-                                        <span
-                                            className={`rounded-full border px-2.5 py-1 text-xs font-medium ${quotationStatusClassName[quotation.status]}`}>
-                                            {
-                                                quotationStatusLabel[
-                                                    quotation.status
-                                                ]
-                                            }
-                                        </span>
-                                    </div>
-                                    <p className="text-lg font-semibold tabular-nums text-zinc-900">
-                                        {formatAmount(quotation.amount)}
-                                    </p>
-                                </div>
-
-                                <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-zinc-600">
-                                    {quotation.description ||
-                                        "설명이 없습니다."}
-                                </p>
-
-                                <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-2 border-t border-zinc-100 pt-3 text-xs text-zinc-500">
-                                    <div className="flex items-center gap-1.5">
-                                        <CalendarDays
-                                            className="h-3.5 w-3.5"
-                                            aria-hidden="true"
-                                        />
-                                        <dt>발행일</dt>
-                                        <dd className="font-medium text-zinc-700">
-                                            {formatDate(quotation.issuedAt)}
-                                        </dd>
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <dt>유효기간</dt>
-                                        <dd className="font-medium text-zinc-700">
-                                            {formatDate(quotation.validUntil)}
-                                        </dd>
-                                    </div>
-                                </dl>
-                            </article>
+                            <QuotationTimelineCard
+                                quotation={quotation}
+                                isLatest={index === 0}
+                                pendingAction={
+                                    pendingQuotationId === quotation.id
+                                        ? pendingAction
+                                        : undefined
+                                }
+                                onSend={handleSend}
+                                onConfirm={(item) =>
+                                    setConfirmAction({
+                                        type: "confirm",
+                                        quotation: item,
+                                    })
+                                }
+                                onReject={(item) =>
+                                    setConfirmAction({
+                                        type: "reject",
+                                        quotation: item,
+                                    })
+                                }
+                            />
                         </li>
                     ))}
                 </ol>
@@ -200,6 +226,32 @@ export const QuotationList = ({ projectId }: QuotationListProps) => {
                     onClose={() => setIsCreateModalOpen(false)}
                 />
             )}
+
+            <ConfirmModal
+                isOpen={confirmAction !== null}
+                title={
+                    confirmAction?.type === "confirm"
+                        ? "견적을 확정하시겠습니까?"
+                        : "견적을 반려하시겠습니까?"
+                }
+                description={
+                    confirmAction?.type === "confirm"
+                        ? "확정 시 프로젝트가 진행중 상태로 변경됩니다."
+                        : "반려 후에는 새 견적 리비전을 생성해서 다시 진행해야 합니다."
+                }
+                confirmText={confirmAction?.type === "confirm" ? "확정" : "반려"}
+                variant={confirmAction?.type === "reject" ? "danger" : "default"}
+                isLoading={confirmMutation.isPending || rejectMutation.isPending}
+                onConfirm={handleConfirmAction}
+                onCancel={() => setConfirmAction(null)}
+            />
+
+            <ErrorModal
+                open={actionError !== null}
+                message={actionError?.message}
+                status={actionError?.status}
+                onClose={() => setActionError(null)}
+            />
         </section>
     );
 };
