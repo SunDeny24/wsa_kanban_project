@@ -1,7 +1,6 @@
-import { CalendarDays, CircleUserRound } from "lucide-react";
+import { CircleUserRound } from "lucide-react";
 
 import type { Card } from "@/features/cards/types";
-import { formatDateTime } from "@/lib/utils/dateFormat";
 import { useDraggable } from "@dnd-kit/react";
 import {
     priorityStyle,
@@ -23,10 +22,6 @@ export const KanbanCard = ({ card, onClick }: KanbanCardProps) => {
             status: card.status,
         },
     });
-
-    console.log("card:", card);
-    console.log("assignee:", card.assignee);
-    console.log("supportType:", card.supportType);
 
     return (
         <div

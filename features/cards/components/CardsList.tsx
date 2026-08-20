@@ -3,6 +3,7 @@
 
 import React, { useState } from "react";
 import { AlertCircle, Plus } from "lucide-react";
+import type { DragEndEvent } from "@dnd-kit/react";
 import { useEntityListQuery } from "@/lib/hooks/useEntity";
 import { Card, CardStatus, cardStatusList } from "@/features/cards/types";
 import { cardStatusLabel, statusStyle } from "@/features/cards/constants";
@@ -12,6 +13,9 @@ import { CardsCreate } from "@/features/cards/components/CardsCreate";
 import CardDetail from "@/features/cards/components/CardDetail";
 import { DragDropProvider } from "@dnd-kit/react";
 import { useCardStatus } from "@/features/cards/hooks/useCardStatus";
+import { ErrorModal } from "@/components/common/ErrorModal";
+import { getErrorResponse } from "@/lib/api/error";
+import type { ErrorResponse } from "@/types/api";
 
 interface KanbanBoardProps {
     projectId: string;
@@ -24,6 +28,7 @@ export const CardList = ({ projectId }: KanbanBoardProps) => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false); // 카드 생성 모달 상태
     const [selectedStatus, setSelectedStatus] = useState<CardStatus>("TODO"); // 선택된 카드 상태
     const [selectedCardId, setSelectedCardId] = useState<string | null>(null); // 선택된 카드 ID
+    const [statusError, setStatusError] = useState<ErrorResponse | null>(null); // DND 상태 변경 오류
     // 카드 목록 조회
     const { data, isLoading, error } = useEntityListQuery<CardListResponse>(
         `/projects/${projectId}/cards`
@@ -35,7 +40,7 @@ export const CardList = ({ projectId }: KanbanBoardProps) => {
     /**
      * DND 종료
      */
-    const handleDragEnd = (event: any) => {
+    const handleDragEnd = (event: DragEndEvent) => {
         // ESC 등으로 drag가 취소된 경우
         if (event.canceled) return;
 
@@ -55,14 +60,22 @@ export const CardList = ({ projectId }: KanbanBoardProps) => {
         if (card.status === nextStatus) {
             return;
         }
-        console.log("DND 상태 변경:", card.status, "→", nextStatus);
+        //console.log("DND 상태 변경:", card.status, "→", nextStatus);
 
-        changeStatus({
-            id: cardId,
-            data: {
-                status: nextStatus,
+        changeStatus(
+            {
+                id: cardId,
+                data: {
+                    status: nextStatus,
+                },
             },
-        });
+            {
+                onError: (error) => {
+                    // 공통 에러 응답으로 변환해 사용자에게 상태 변경 실패를 안내
+                    setStatusError(getErrorResponse(error));
+                },
+            }
+        );
     };
 
     if (isLoading) {
@@ -249,6 +262,13 @@ export const CardList = ({ projectId }: KanbanBoardProps) => {
                     onClose={() => setSelectedCardId(null)}
                 />
             )}
+
+            <ErrorModal
+                open={!!statusError}
+                message={statusError?.message}
+                status={statusError?.status}
+                onClose={() => setStatusError(null)}
+            />
         </div>
     );
 };
