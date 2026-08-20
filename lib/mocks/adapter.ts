@@ -22,6 +22,18 @@ import {
   handleUpdateProject,
   handleDeleteProject,
 } from './handlers/projectHandlers';
+import {
+  handleGetProjectCards,
+  handleCreateCard,
+  handleGetCardById,
+  handleUpdateCard,
+  handleUpdateCardStatus,
+} from './handlers/cardHandlers';
+import {
+  handleGetProjectQuotations,
+  handleCreateQuotation,
+  handleQuotationAction,
+} from './handlers/quotationHandlers';
 
 // ─── 응답 지연 유틸 ───────────────────────────────────────────────────────────
 
@@ -131,6 +143,43 @@ async function route(
   body: unknown,
 ): Promise<MockResponse> {
   const m = method.toUpperCase();
+
+  // 견적 단건 액션은 프로젝트별 견적 목록 경로보다 먼저 매칭합니다.
+  const quotationActionMatch = path.match(/^\/quotations\/([^/]+)\/(send|confirm|reject)$/);
+  if (quotationActionMatch && m === 'PATCH') {
+    return handleQuotationAction(
+      quotationActionMatch[1],
+      quotationActionMatch[2] as Parameters<typeof handleQuotationAction>[1]
+    );
+  }
+
+  // /projects/:projectId/quotations
+  const projectQuotationsMatch = path.match(/^\/projects\/([^/]+)\/quotations$/);
+  if (projectQuotationsMatch) {
+    if (m === 'GET') return handleGetProjectQuotations(projectQuotationsMatch[1]);
+    if (m === 'POST') return handleCreateQuotation(projectQuotationsMatch[1], body as Parameters<typeof handleCreateQuotation>[1]);
+  }
+
+  // 구체적인 카드 상태 변경 경로를 카드 단건 경로보다 먼저 매칭
+  const cardStatusMatch = path.match(/^\/cards\/([^/]+)\/status$/);
+  if (cardStatusMatch && m === 'PATCH') {
+    return handleUpdateCardStatus(cardStatusMatch[1], body as Parameters<typeof handleUpdateCardStatus>[1]);
+  }
+
+  // /projects/:projectId/cards
+  const projectCardsMatch = path.match(/^\/projects\/([^/]+)\/cards$/);
+  if (projectCardsMatch) {
+    if (m === 'GET') return handleGetProjectCards(projectCardsMatch[1], params.status);
+    if (m === 'POST') return handleCreateCard(projectCardsMatch[1], body as Parameters<typeof handleCreateCard>[1]);
+  }
+
+  // /cards/:id
+  const cardIdMatch = path.match(/^\/cards\/([^/]+)$/);
+  if (cardIdMatch) {
+    const id = cardIdMatch[1];
+    if (m === 'GET') return handleGetCardById(id);
+    if (m === 'PATCH') return handleUpdateCard(id, body as Parameters<typeof handleUpdateCard>[1]);
+  }
 
   // /projects/:id/activate
   const activateMatch = path.match(/^\/projects\/([^/]+)\/activate$/);
