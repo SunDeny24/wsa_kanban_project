@@ -63,17 +63,57 @@ export const ProjectOverview = () => {
     };
 
     return (
-        <section className="w-full">
-            <div className="py-4 sm:py-5">
-                {isLoading ? (
-                    <p className="text-sm text-gray-500">
+        <section aria-labelledby="project-overview-title">
+            {/* 기본 정보 헤더 */}
+            <header className="mb-5 flex items-start justify-between gap-3">
+                <div>
+                    <h1
+                        id="project-overview-title"
+                        className="text-lg font-semibold tracking-tight text-zinc-800">
+                        기본 정보
+                    </h1>
+
+                    <p className="mt-1 text-sm text-zinc-500">
+                        프로젝트의 기본 정보를 확인하고 수정합니다.
+                    </p>
+                </div>
+
+                {!isEditing && project && (
+                    <button
+                        type="button"
+                        onClick={startEditing}
+                        aria-label="기본 정보 수정"
+                        className="
+                        inline-flex h-9 shrink-0 items-center gap-2
+                        rounded-xl bg-blue-50 px-3
+                        text-sm font-medium text-blue-600
+                        transition
+                        hover:bg-blue-100
+                        active:scale-[0.98]
+                        sm:px-4
+                    ">
+                        <Pencil className="h-4 w-4" aria-hidden="true" />
+
+                        <span className="hidden sm:inline">기본 정보 수정</span>
+                    </button>
+                )}
+            </header>
+
+            {/* 기본 정보 내용 */}
+            {isLoading ? (
+                <div className="rounded-2xl bg-white p-6">
+                    <p className="text-sm text-zinc-500">
                         프로젝트 정보를 불러오는 중...
                     </p>
-                ) : !project ? (
+                </div>
+            ) : !project ? (
+                <div className="rounded-2xl bg-white p-6">
                     <p className="text-sm text-red-600">
                         프로젝트 정보를 불러오지 못했습니다.
                     </p>
-                ) : isEditing ? (
+                </div>
+            ) : isEditing ? (
+                <div className="rounded-2xl bg-white p-5 sm:p-6">
                     <ProjectForm
                         register={register}
                         errors={formState.errors}
@@ -83,70 +123,67 @@ export const ProjectOverview = () => {
                         submitLabel="저장"
                         pendingLabel="저장 중..."
                     />
-                ) : (
-                    <div className="space-y-6">
-                        <div>
-                            <div className="flex items-center justify-between gap-3">
-                                <p className="text-sm font-medium text-gray-500">
-                                    프로젝트명
-                                </p>
-                                <button
-                                    type="button"
-                                    onClick={startEditing}
-                                    aria-label="프로젝트 수정"
-                                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-700 transition hover:bg-gray-50 sm:w-auto sm:gap-1.5 sm:px-3">
-                                    <Pencil
-                                        className="h-3.5 w-3.5"
-                                        aria-hidden="true"
-                                    />
-                                    <span className="hidden sm:inline">
-                                        수정
-                                    </span>
-                                </button>
-                            </div>
-                            <p className="mt-2 break-words text-sm text-gray-900">
+                </div>
+            ) : (
+                <div className="rounded-2xl bg-white p-5 sm:p-6">
+                    <dl className="space-y-6">
+                        {/* 프로젝트명 */}
+                        <div className="grid gap-1.5 sm:grid-cols-[120px_1fr] sm:gap-6">
+                            <dt className="text-sm font-medium text-zinc-500">
+                                프로젝트명
+                            </dt>
+
+                            <dd className="break-words text-sm font-medium text-zinc-900">
                                 {project.name}
-                            </p>
+                            </dd>
                         </div>
 
-                        <div>
-                            <p className="text-sm font-medium text-gray-500">
+                        {/* 고객사 */}
+                        <div className="grid gap-1.5 sm:grid-cols-[120px_1fr] sm:gap-6">
+                            <dt className="text-sm font-medium text-zinc-500">
                                 고객사
-                            </p>
-                            <p className="mt-2 break-words text-sm text-gray-900">
+                            </dt>
+
+                            <dd className="break-words text-sm text-zinc-900">
                                 {project.customer}
-                            </p>
+                            </dd>
                         </div>
 
-                        <div>
-                            <p className="text-sm font-medium text-gray-500">
+                        {/* 설명 */}
+                        <div className="grid gap-1.5 sm:grid-cols-[120px_1fr] sm:gap-6">
+                            <dt className="text-sm font-medium text-zinc-500">
                                 설명
-                            </p>
-                            <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-gray-900">
+                            </dt>
+
+                            <dd className="whitespace-pre-wrap break-words text-sm leading-6 text-zinc-900">
                                 {project.description || "-"}
-                            </p>
+                            </dd>
                         </div>
 
-                        <div>
-                            <p className="text-sm font-medium text-gray-500">
+                        {/* 시작일 */}
+                        <div className="grid gap-1.5 sm:grid-cols-[120px_1fr] sm:gap-6">
+                            <dt className="text-sm font-medium text-zinc-500">
                                 시작일
-                            </p>
-                            <p className="mt-2 text-sm text-gray-900">
+                            </dt>
+
+                            <dd className="text-sm text-zinc-900">
                                 {project.startDate || "-"}
-                            </p>
+                            </dd>
                         </div>
 
-                        <div>
-                            <p className="text-sm font-medium text-gray-500">
+                        {/* 종료일 */}
+                        <div className="grid gap-1.5 sm:grid-cols-[120px_1fr] sm:gap-6">
+                            <dt className="text-sm font-medium text-zinc-500">
                                 종료일
-                            </p>
-                            <p className="mt-2 text-sm text-gray-900">
+                            </dt>
+
+                            <dd className="text-sm text-zinc-900">
                                 {project.endDate || "-"}
-                            </p>
+                            </dd>
                         </div>
-                    </div>
-                )}
-            </div>
+                    </dl>
+                </div>
+            )}
 
             <ErrorModal
                 open={!!queryErrorResponse && !isQueryErrorDismissed}

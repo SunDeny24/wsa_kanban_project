@@ -67,12 +67,12 @@ export default function ProjectDetailLayout({
     return (
         <main className="min-h-screen bg-gray-50">
             <header className="border-b bg-white ">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between px-5 py-4">
                     {/* 프로젝트 목록으로 돌아가기 버튼(뒤로가기) */}
                     <button
                         type="button"
                         onClick={() => router.push(listUrl)}
-                        className="inline-flex items-center gap-2 rounded-md px-2 py-1.5 mx-5 mt-5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                        className="inline-flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
                         aria-label="프로젝트 목록으로 돌아가기">
                         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
                         프로젝트 목록
@@ -82,7 +82,14 @@ export default function ProjectDetailLayout({
                         type="button"
                         aria-label="프로젝트 삭제"
                         onClick={() => setIsDeleteModalOpen(true)}
-                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center mx-5 mt-5 rounded-md border border-red-300 bg-white text-red-700 transition hover:bg-red-50 sm:w-auto sm:gap-1.5 sm:px-3">
+                        className="
+                                inline-flex h-8 items-center justify-center gap-1.5
+                                rounded-lg px-2.5
+                                text-sm font-medium text-red-500
+                                transition-colors
+                                bg-red-50
+                                hover:text-red-600
+                            ">
                         <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                         <span className="hidden sm:inline">삭제</span>
                     </button>
