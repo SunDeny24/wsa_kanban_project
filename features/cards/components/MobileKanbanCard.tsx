@@ -31,8 +31,10 @@ export const MobileKanbanCard = ({ card, onClick }: MobileKanbanCardProps) => {
                 </h3>
 
                 <span
-                    className={` shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-semibold
-                    ${priorityStyle[card.priorityType]}
+                    className={` shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold
+                    ${priorityStyle[card.priorityType].background}
+                    ${priorityStyle[card.priorityType].border}
+                    ${priorityStyle[card.priorityType].text}
                   `}>
                     {priorityLabel[card.priorityType]}
                 </span>
