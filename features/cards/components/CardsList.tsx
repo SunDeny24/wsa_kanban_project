@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { AlertCircle, Plus } from "lucide-react";
+import { AlertCircle, Plus, RefreshCw } from "lucide-react";
 import type { DragEndEvent } from "@dnd-kit/react";
 import { useEntityListQuery } from "@/lib/hooks/useEntity";
 import { Card, CardStatus, cardStatusList } from "@/features/cards/types";
@@ -16,6 +16,7 @@ import { useCardStatus } from "@/features/cards/hooks/useCardStatus";
 import { ErrorModal } from "@/components/common/ErrorModal";
 import { getErrorResponse } from "@/lib/api/error";
 import type { ErrorResponse } from "@/types/api";
+import CardListSkeleton from "@/features/cards/components/CardListSkeleton";
 
 interface KanbanBoardProps {
     projectId: string;
@@ -30,9 +31,8 @@ export const CardList = ({ projectId }: KanbanBoardProps) => {
     const [selectedCardId, setSelectedCardId] = useState<string | null>(null); // 선택된 카드 ID
     const [statusError, setStatusError] = useState<ErrorResponse | null>(null); // DND 상태 변경 오류
     // 카드 목록 조회
-    const { data, isLoading, error } = useEntityListQuery<CardListResponse>(
-        `/projects/${projectId}/cards`
-    );
+    const { data, isLoading, isFetching, error, refetch } =
+        useEntityListQuery<CardListResponse>(`/projects/${projectId}/cards`);
 
     // 상태 변경 API 호출
     const { mutate: changeStatus } = useCardStatus(projectId);
@@ -78,25 +78,6 @@ export const CardList = ({ projectId }: KanbanBoardProps) => {
         );
     };
 
-    if (isLoading) {
-        return (
-            <div className="flex min-h-[500px] items-center justify-center">
-                <p className="text-sm text-zinc-500">카드를 불러오는 중...</p>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="flex min-h-[500px] items-center justify-center">
-                <div className="flex items-center gap-2 text-sm text-red-500">
-                    <AlertCircle className="h-4 w-4" />
-                    카드를 불러오지 못했습니다.
-                </div>
-            </div>
-        );
-    }
-
     const cards = data ?? [];
 
     // 모바일에서는 선택된 상태의 카드만 보여줍니다.
@@ -135,24 +116,36 @@ export const CardList = ({ projectId }: KanbanBoardProps) => {
             </div>
 
             {/* =====================칸반========================== */}
-            {/* ---------------------모바일------------------------ */}
-            <div className="md:hidden">
-                {/* 상태 탭 */}
-                <div className="mb-4 overflow-x-auto border-b border-zinc-200">
-                    <div className="flex min-w-max gap-5">
-                        {columns.map((status) => {
-                            const isActive = selectedStatus === status;
+            {isLoading ? (
+                <CardListSkeleton />
+            ) : error ? (
+                <CardListErrorState
+                    message={getErrorResponse(error).message}
+                    onRetry={() => void refetch()}
+                    isRetrying={isFetching}
+                />
+            ) : (
+                <>
+                    {/* ---------------------모바일------------------------ */}
+                    <div className="md:hidden">
+                        {/* 상태 탭 */}
+                        <div className="mb-4 overflow-x-auto border-b border-zinc-200">
+                            <div className="flex min-w-max gap-5">
+                                {columns.map((status) => {
+                                    const isActive = selectedStatus === status;
 
-                            const count = cards.filter(
-                                (card) => card.status === status
-                            ).length;
+                                    const count = cards.filter(
+                                        (card) => card.status === status
+                                    ).length;
 
-                            return (
-                                <button
-                                    key={status}
-                                    type="button"
-                                    onClick={() => setSelectedStatus(status)}
-                                    className={` relative flex items-center gap-1.5 px-1 pb-3
+                                    return (
+                                        <button
+                                            key={status}
+                                            type="button"
+                                            onClick={() =>
+                                                setSelectedStatus(status)
+                                            }
+                                            className={` relative flex items-center gap-1.5 px-1 pb-3
                                                 text-sm transition
                                                 ${
                                                     isActive
@@ -160,9 +153,9 @@ export const CardList = ({ projectId }: KanbanBoardProps) => {
                                                         : "text-zinc-400 hover:text-zinc-700"
                                                 }
                                             `}>
-                                    {cardStatusLabel[status]}
-                                    <span
-                                        className={`
+                                            {cardStatusLabel[status]}
+                                            <span
+                                                className={`
                                             rounded-full px-1.5 py-0.5 text-[10px]
                                             ${
                                                 isActive
@@ -170,83 +163,85 @@ export const CardList = ({ projectId }: KanbanBoardProps) => {
                                                     : "bg-zinc-200 text-zinc-500"
                                             }
                                         `}>
-                                        {count}
-                                    </span>
+                                                {count}
+                                            </span>
 
-                                    {/* 선택된 탭 밑줄 */}
-                                    {isActive && (
-                                        <span
-                                            className={` absolute inset-x-0 bottom-0 h-0.5 rounded-full
+                                            {/* 선택된 탭 밑줄 */}
+                                            {isActive && (
+                                                <span
+                                                    className={` absolute inset-x-0 bottom-0 h-0.5 rounded-full
                                                 ${statusStyle[status].indicator}
                                             `}
-                                        />
-                                    )}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* 선택된 컬럼 정보 */}
-                <div className="mb-3 flex items-center justify-between">
-                    <h2 className="text-sm font-semibold text-zinc-800">
-                        {cardStatusLabel[selectedStatus]}
-                    </h2>
-
-                    <span className="text-xs text-zinc-400">
-                        {selectedCards.length}개
-                    </span>
-                </div>
-
-                {/* 모바일 카드 목록 */}
-                <div className="flex flex-col gap-2">
-                    {selectedCards.map((card) => (
-                        <MobileKanbanCard
-                            key={card.id}
-                            card={card}
-                            onClick={() => setSelectedCardId(card.id)}
-                        />
-                    ))}
-
-                    {selectedCards.length === 0 && (
-                        <div
-                            className="
-                flex h-28 items-center justify-center
-                rounded-xl
-                border border-dashed border-zinc-200
-                bg-zinc-50
-                text-xs text-zinc-400
-              ">
-                            카드가 없습니다.
+                                                />
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
-                    )}
-                </div>
-            </div>
 
-            {/* ---------------------태블릿 / PC ------------------------ */}
-            <DragDropProvider onDragEnd={handleDragEnd}>
-                <div className="hidden md:block">
-                    <div className="grid w-full grid-cols-4 gap-2 lg:gap-3 ">
-                        {columns.map((status) => {
-                            const columnCards = cards.filter(
-                                (card) => card.status === status
-                            );
+                        {/* 선택된 컬럼 정보 */}
+                        <div className="mb-3 flex items-center justify-between">
+                            <h2 className="text-sm font-semibold text-zinc-800">
+                                {cardStatusLabel[selectedStatus]}
+                            </h2>
 
-                            return (
-                                <KanbanColumn
-                                    key={status}
-                                    status={status}
-                                    cards={columnCards}
-                                    onCreateCard={() =>
-                                        setIsCreateModalOpen(true)
-                                    }
-                                    onCardClick={setSelectedCardId}
+                            <span className="text-xs text-zinc-400">
+                                {selectedCards.length}개
+                            </span>
+                        </div>
+
+                        {/* 모바일 카드 목록 */}
+                        <div className="flex flex-col gap-2">
+                            {selectedCards.map((card) => (
+                                <MobileKanbanCard
+                                    key={card.id}
+                                    card={card}
+                                    onClick={() => setSelectedCardId(card.id)}
                                 />
-                            );
-                        })}
+                            ))}
+
+                            {selectedCards.length === 0 && (
+                                <div
+                                    className="
+                                    flex h-28 items-center justify-center
+                                    rounded-xl
+                                    border border-dashed border-zinc-200
+                                    bg-zinc-50
+                                    text-xs text-zinc-400
+                                  ">
+                                    카드가 없습니다.
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </div>
-            </DragDropProvider>
+
+                    {/* ---------------------태블릿 / PC ------------------------ */}
+                    <DragDropProvider onDragEnd={handleDragEnd}>
+                        <div className="hidden md:block">
+                            <div className="grid w-full grid-cols-4 gap-2 lg:gap-3 ">
+                                {columns.map((status) => {
+                                    const columnCards = cards.filter(
+                                        (card) => card.status === status
+                                    );
+
+                                    return (
+                                        <KanbanColumn
+                                            key={status}
+                                            status={status}
+                                            cards={columnCards}
+                                            onCreateCard={() =>
+                                                setIsCreateModalOpen(true)
+                                            }
+                                            onCardClick={setSelectedCardId}
+                                        />
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </DragDropProvider>
+                </>
+            )}
 
             {/* 목록의 검색 조건을 유지한 생성폼 모달 */}
             <CardsCreate
@@ -272,5 +267,38 @@ export const CardList = ({ projectId }: KanbanBoardProps) => {
         </div>
     );
 };
+
+interface CardListErrorStateProps {
+    message: string;
+    onRetry: () => void;
+    isRetrying: boolean;
+}
+// 카드 목록 조회 실패 상태 - EmptyState와 유사하게 카드 목록 조회 실패 시 보여주는 컴포넌트
+const CardListErrorState = ({
+    message,
+    onRetry,
+    isRetrying,
+}: CardListErrorStateProps) => (
+    <div
+        role="alert"
+        className="flex min-h-[320px] flex-col items-center justify-center rounded-xl border border-zinc-200 bg-white px-6 text-center md:min-h-[620px]">
+        <AlertCircle aria-hidden="true" className="h-7 w-7 text-red-500" />
+        <p className="mt-3 text-sm font-medium text-zinc-800">
+            카드를 불러오지 못했습니다.
+        </p>
+        <p className="mt-1 max-w-md text-xs text-zinc-500">{message}</p>
+        <button
+            type="button"
+            onClick={onRetry}
+            disabled={isRetrying}
+            className="mt-4 inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50">
+            <RefreshCw
+                aria-hidden="true"
+                className={`h-4 w-4 ${isRetrying ? "animate-spin" : ""}`}
+            />
+            {isRetrying ? "다시 불러오는 중..." : "다시 시도"}
+        </button>
+    </div>
+);
 
 export default CardList;
