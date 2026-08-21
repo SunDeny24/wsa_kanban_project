@@ -5,6 +5,7 @@ import { ProjectTable } from "./ProjectListTable";
 import { ProjectCreate } from "./ProjectCreate";
 import { Project, ProjectStatus } from "../types";
 import { useListEntityForm } from "@/lib/hooks/useQueryForm";
+import { ProjectListSkeleton } from "@/features/project/components/ProjectListSkeleton";
 
 // 프로젝트 검색/필터 폼 타입 정의
 interface ProjectSearchForm {
@@ -31,14 +32,12 @@ export const ProjectList = () => {
     const statusParam = searchParams.get("status"); // URL 에서 검색 조건 및 페이지 번호 가져옴
 
     // 검색 조건 초기화 - 고객사 검색이 있으면 customer, 프로젝트명 검색이 있으면 name, 둘 다 없으면 customer로 초기화
-    const initialSearchType = searchParams.get("customer")
-        ? "customer"
-        : "name";
+    const initialSearchType = searchParams.get("name") ? "name" : "customer";
     // 검색 조건 상태관리
     const [searchType, setSearchType] = useState<"customer" | "name">(
         searchParams.get("customer") || searchParams.get("name")
             ? initialSearchType
-            : "customer"
+            : "name"
     );
     // 검색어 상태관리
     const [keyword, setKeyword] = useState(
@@ -67,7 +66,9 @@ export const ProjectList = () => {
         onPageChange,
         data,
         isLoading,
+        isFetching,
         error,
+        refetch,
     } = useListEntityForm<ProjectListResponse, ProjectSearchForm>("/projects", {
         formOptions: {
             defaultValues: {
@@ -88,12 +89,12 @@ export const ProjectList = () => {
 
         // 선택한 검색 대상만 API 필터에 남기고 반대쪽 조건은 제거합니다.
         setValue(
-            "customer",
-            searchType === "customer" && nextKeyword ? nextKeyword : undefined
-        );
-        setValue(
             "name",
             searchType === "name" && nextKeyword ? nextKeyword : undefined
+        );
+        setValue(
+            "customer",
+            searchType === "customer" && nextKeyword ? nextKeyword : undefined
         );
         void onSearch(event);
     };
@@ -136,24 +137,6 @@ export const ProjectList = () => {
 
     const currentPage = page; // api page는 useQueryForm hook에서 state로 관리
     const totalPages = data?.totalPages ?? 1; // 전체 데이터는 api데이터
-
-    if (isLoading) {
-        return <div>프로젝트를 불러오는 중...</div>;
-    }
-
-    if (error) {
-        return (
-            <div className="flex min-h-full items-center justify-center p-5">
-                <div className="rounded-lg border border-red-200 bg-red-50 px-6 py-5 text-center">
-                    <p className="text-sm font-medium text-red-700">
-                        프로젝트를 불러오지 못했습니다.
-                    </p>
-
-                    <p className="mt-1 text-sm text-red-600">{error.message}</p>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="flex min-h-full flex-col space-y-5 p-5 lg:p-6">
@@ -242,7 +225,7 @@ export const ProjectList = () => {
                             value={searchType}
                             onChange={(e) =>
                                 setSearchType(
-                                    e.target.value as "customer" | "name"
+                                    e.target.value as "name" | "customer"
                                 )
                             }
                             className="h-9 shrink-0 rounded-md border border-gray-300 bg-white px-3 text-sm outline-none focus:border-black focus:ring-1 focus:ring-black">
@@ -258,9 +241,9 @@ export const ProjectList = () => {
                             value={keyword}
                             onChange={(e) => setKeyword(e.target.value)}
                             placeholder={
-                                searchType === "customer"
-                                    ? "고객사명을 입력하세요"
-                                    : "프로젝트명을 입력하세요"
+                                searchType === "name"
+                                    ? "프로젝트명을 입력하세요"
+                                    : "고객사명을 입력하세요"
                             }
                             className="h-9 min-w-0 flex-1 rounded-md border border-gray-300 px-3 text-sm outline-none transition focus:border-black focus:ring-1 focus:ring-black"
                         />
@@ -287,7 +270,9 @@ export const ProjectList = () => {
             <div className="flex items-center justify-between">
                 {/* Total */}
                 <p className="text-sm text-gray-500">
-                    총 {data?.totalElements ?? 0}개
+                    {isLoading
+                        ? "프로젝트를 불러오는 중..."
+                        : `총 ${data?.totalElements ?? 0}개`}
                 </p>
                 <div className="flex items-center gap-2">
                     <label htmlFor="project-sort" className="sr-only">
@@ -310,50 +295,63 @@ export const ProjectList = () => {
 
             {/* Project Table */}
             <div className="flex-1">
-                <ProjectTable projects={data?.content ?? []} />
+                {isLoading ? (
+                    <ProjectListSkeleton />
+                ) : error ? (
+                    <ProjectTable
+                        projects={[]}
+                        errorMessage={error.message}
+                        onRetry={() => void refetch()}
+                        isRetrying={isFetching}
+                    />
+                ) : (
+                    <ProjectTable projects={data?.content ?? []} />
+                )}
             </div>
 
             {/* Pagination */}
-            <div className="flex items-center justify-center border-t pt-4">
-                <div className="flex items-center gap-1">
-                    {/* 이전 */}
-                    <button
-                        type="button"
-                        disabled={currentPage === 0}
-                        onClick={() => onPageChange(currentPage - 1)}
-                        className="flex h-8 min-w-8 items-center justify-center rounded-md border px-2 text-sm text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40">
-                        이전
-                    </button>
-
-                    {/* 페이지 번호 */}
-                    {Array.from(
-                        { length: totalPages },
-                        (_, index) => index
-                    ).map((pageNumber) => (
+            {!isLoading && !error && (
+                <div className="flex items-center justify-center border-t pt-4">
+                    <div className="flex items-center gap-1">
+                        {/* 이전 */}
                         <button
-                            key={pageNumber}
                             type="button"
-                            onClick={() => onPageChange(pageNumber)}
-                            className={`h-8 min-w-8 rounded-md px-2 text-sm ${
-                                pageNumber === currentPage
-                                    ? "bg-black font-medium text-white"
-                                    : "border text-gray-600 hover:bg-gray-50"
-                            }`}>
-                            {/* API page는 0부터 시작하므로 화면에는 +1 */}
-                            {pageNumber + 1}
+                            disabled={currentPage === 0}
+                            onClick={() => onPageChange(currentPage - 1)}
+                            className="flex h-8 min-w-8 items-center justify-center rounded-md border px-2 text-sm text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40">
+                            이전
                         </button>
-                    ))}
 
-                    {/* 다음 */}
-                    <button
-                        type="button"
-                        disabled={currentPage >= totalPages - 1}
-                        onClick={() => onPageChange(currentPage + 1)}
-                        className="flex h-8 min-w-8 items-center justify-center rounded-md border px-2 text-sm text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40">
-                        다음
-                    </button>
+                        {/* 페이지 번호 */}
+                        {Array.from(
+                            { length: totalPages },
+                            (_, index) => index
+                        ).map((pageNumber) => (
+                            <button
+                                key={pageNumber}
+                                type="button"
+                                onClick={() => onPageChange(pageNumber)}
+                                className={`h-8 min-w-8 rounded-md px-2 text-sm ${
+                                    pageNumber === currentPage
+                                        ? "bg-black font-medium text-white"
+                                        : "border text-gray-600 hover:bg-gray-50"
+                                }`}>
+                                {/* API page는 0부터 시작하므로 화면에는 +1 */}
+                                {pageNumber + 1}
+                            </button>
+                        ))}
+
+                        {/* 다음 */}
+                        <button
+                            type="button"
+                            disabled={currentPage >= totalPages - 1}
+                            onClick={() => onPageChange(currentPage + 1)}
+                            className="flex h-8 min-w-8 items-center justify-center rounded-md border px-2 text-sm text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40">
+                            다음
+                        </button>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* 목록의 검색 조건을 유지한 채 생성 폼을 모달로 표시합니다. */}
             <ProjectCreate
