@@ -101,13 +101,14 @@ export const CardsForm = ({
                     <label
                         htmlFor="priority"
                         className="mb-1.5 block text-sm font-medium text-gray-700">
-                        우선순위
+                        우선순위 <span className="text-red-500">*</span>
                     </label>
                     <select
                         id="priority"
                         aria-invalid={!!errors.priorityType}
                         className={`${fieldClassName(!!errors.priorityType)} h-10`}
                         {...register("priorityType", {
+                            required: "우선순위를 선택해주세요.",
                             setValueAs: optionalValue,
                         })}>
                         <option value="">선택</option>
@@ -132,13 +133,14 @@ export const CardsForm = ({
                     <label
                         htmlFor="supportType"
                         className="mb-1.5 block text-sm font-medium text-gray-700">
-                        지원유형
+                        지원유형 <span className="text-red-500">*</span>
                     </label>
                     <select
                         id="supportType"
                         aria-invalid={!!errors.supportType}
                         className={`${fieldClassName(!!errors.supportType)} h-10`}
                         {...register("supportType", {
+                            required: "지원유형을 선택해주세요.",
                             setValueAs: optionalValue,
                         })}>
                         <option value="">선택</option>
