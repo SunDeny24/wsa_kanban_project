@@ -64,7 +64,11 @@ export const QuotationList = ({ projectId }: QuotationListProps) => {
     const confirmMutation = useUpdateEntity<void, Quotation>("/quotations", {
         ...commonMutationOptions,
         // 확정 시 서버가 프로젝트 상태도 변경하므로 상세와 목록을 함께 갱신합니다.
-        invalidateKeys: [[quotationsEndpoint], ["/projects", projectId], ["/projects"]],
+        invalidateKeys: [
+            [quotationsEndpoint],
+            ["/projects", projectId],
+            ["/projects"],
+        ],
     });
 
     const handleSend = (quotation: Quotation) => {
@@ -213,6 +217,7 @@ export const QuotationList = ({ projectId }: QuotationListProps) => {
                                         quotation: item,
                                     })
                                 }
+                                isQuotation={canCreateQuotation}
                             />
                         </li>
                     ))}
@@ -239,9 +244,15 @@ export const QuotationList = ({ projectId }: QuotationListProps) => {
                         ? "확정 시 프로젝트가 진행중 상태로 변경됩니다."
                         : "반려 후에는 새 견적 리비전을 생성해서 다시 진행해야 합니다."
                 }
-                confirmText={confirmAction?.type === "confirm" ? "확정" : "반려"}
-                variant={confirmAction?.type === "reject" ? "danger" : "default"}
-                isLoading={confirmMutation.isPending || rejectMutation.isPending}
+                confirmText={
+                    confirmAction?.type === "confirm" ? "확정" : "반려"
+                }
+                variant={
+                    confirmAction?.type === "reject" ? "danger" : "default"
+                }
+                isLoading={
+                    confirmMutation.isPending || rejectMutation.isPending
+                }
                 onConfirm={handleConfirmAction}
                 onCancel={() => setConfirmAction(null)}
             />
