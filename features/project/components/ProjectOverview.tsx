@@ -6,8 +6,8 @@ import { Pencil } from "lucide-react";
 import { ErrorModal } from "@/components/common/ErrorModal";
 import { ProjectForm } from "@/features/project/components/ProjectForm";
 import type { Project, ProjectUpdateRequest } from "@/features/project/types";
-import { getErrorResponse } from "@/lib/api/error";
 import { useUpdateEntityForm } from "@/lib/hooks/useQueryForm";
+import { ProjectOverviewSkeleton } from "@/features/project/components/skeleton/ProjectDetailSkeleton";
 
 const PROJECTS_ENDPOINT = "/projects";
 
@@ -23,11 +23,9 @@ export const ProjectOverview = () => {
     const params = useParams<{ projectId: string }>();
     const projectId = params.projectId;
     const [isEditing, setIsEditing] = useState(false);
-    const [isQueryErrorDismissed, setIsQueryErrorDismissed] = useState(false);
     const {
         data: project,
         isLoading,
-        queryError,
         register,
         onSubmit,
         formState,
@@ -35,7 +33,6 @@ export const ProjectOverview = () => {
         errorResponse,
         clearErrorResponse,
         reset,
-        query,
     } = useUpdateEntityForm<ProjectUpdateRequest, Project, Project>(
         PROJECTS_ENDPOINT,
         projectId,
@@ -46,7 +43,6 @@ export const ProjectOverview = () => {
             },
         }
     );
-    const queryErrorResponse = queryError ? getErrorResponse(queryError) : null;
 
     const startEditing = () => {
         if (!project) return;
@@ -78,6 +74,7 @@ export const ProjectOverview = () => {
                     </p>
                 </div>
 
+                {/* 프로젝트 조회 성공 시에만 수정 버튼 노출 */}
                 {!isEditing && project && (
                     <button
                         type="button"
@@ -101,18 +98,9 @@ export const ProjectOverview = () => {
 
             {/* 기본 정보 내용 */}
             {isLoading ? (
-                <div className="rounded-2xl bg-white p-6">
-                    <p className="text-sm text-zinc-500">
-                        프로젝트 정보를 불러오는 중...
-                    </p>
-                </div>
-            ) : !project ? (
-                <div className="rounded-2xl bg-white p-6">
-                    <p className="text-sm text-red-600">
-                        프로젝트 정보를 불러오지 못했습니다.
-                    </p>
-                </div>
-            ) : isEditing ? (
+                /* 조회 중 스켈레톤 */
+                <ProjectOverviewSkeleton />
+            ) : !project ? null : isEditing ? ( // 프로젝트 존재 여부와 조회 오류는 상위 Layout에서 처리
                 <div className="rounded-2xl bg-white p-5 sm:p-6">
                     <ProjectForm
                         register={register}
@@ -185,17 +173,7 @@ export const ProjectOverview = () => {
                 </div>
             )}
 
-            <ErrorModal
-                open={!!queryErrorResponse && !isQueryErrorDismissed}
-                message={queryErrorResponse?.message}
-                status={queryErrorResponse?.status}
-                onRetry={() => {
-                    setIsQueryErrorDismissed(false);
-                    void query.refetch();
-                }}
-                onClose={() => setIsQueryErrorDismissed(true)}
-            />
-
+            {/* 에러모달 - 프로젝트 수정 실패 */}
             <ErrorModal
                 open={!!errorResponse}
                 message={errorResponse?.message}

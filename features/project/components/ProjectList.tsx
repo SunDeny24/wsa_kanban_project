@@ -5,7 +5,7 @@ import { ProjectTable } from "./ProjectListTable";
 import { ProjectCreate } from "./ProjectCreate";
 import { Project, ProjectStatus } from "../types";
 import { useListEntityForm } from "@/lib/hooks/useQueryForm";
-import { ProjectListSkeleton } from "@/features/project/components/ProjectListSkeleton";
+import { ProjectListSkeleton } from "@/features/project/components/skeleton/ProjectListSkeleton";
 
 // 프로젝트 검색/필터 폼 타입 정의
 interface ProjectSearchForm {
