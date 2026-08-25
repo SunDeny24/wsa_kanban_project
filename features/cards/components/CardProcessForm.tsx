@@ -1,4 +1,5 @@
 "use client";
+// 처리정보 저장 폼
 
 import { useEffect } from "react";
 
@@ -6,17 +7,20 @@ import type { Card, CardUpdateForm } from "@/features/cards/types";
 import { useUpdateEntityForm } from "@/lib/hooks/useQueryForm";
 import { toCardUpdateRequest } from "@/features/cards/utils/cardMapper";
 import { formatDateTime } from "@/lib/utils/dateFormat";
+import CardErrorToast from "@/features/cards/components/CardErrorToast";
 
 interface CardProcessFormProps {
     card: Card;
     projectId: string;
     onDirtyChange?: (dirty: boolean) => void;
+    onCardUnavailable: () => void;
 }
 
 export const CardProcessForm = ({
     card,
     projectId,
     onDirtyChange,
+    onCardUnavailable,
 }: CardProcessFormProps) => {
     // input 또는 textarea를 건드렸는지 여부
 
@@ -26,6 +30,9 @@ export const CardProcessForm = ({
         reset,
         formState: { errors, isDirty },
         isPending,
+        errorResponse,
+        clearErrorResponse,
+        mutation,
     } = useUpdateEntityForm<CardUpdateForm, Card, Card>("/cards", card.id, {
         // CardDetail에서 이미 조회했으므로 GET 중복 방지
         queryOptions: {
@@ -37,6 +44,8 @@ export const CardProcessForm = ({
         formOptions: {
             defaultValues: toCardUpdateRequest(card),
         },
+        // disabled query가 캐시 데이터를 반환해도 전체 수정 payload 형식을 유지
+        mapQueryData: toCardUpdateRequest,
 
         mutationOptions: {
             invalidateKeys: [[`/projects/${projectId}/cards`]],
@@ -66,10 +75,22 @@ export const CardProcessForm = ({
         };
     }, [isDirty, onDirtyChange]);
 
+    // ✅ 수정: 처리 정보 PATCH 404 발생 시 stale 상세 종료
+    useEffect(() => {
+        if (errorResponse?.status === 404) onCardUnavailable();
+    }, [errorResponse?.status, onCardUnavailable]);
+
     const handleCancel = () => {
         // 사용자가 수정한 값 버리고
         // 현재 조회된 card 값으로 되돌림
         reset(toCardUpdateRequest(card));
+    };
+
+    // ✅ 수정: 실패했던 전체 PATCH payload로 재시도
+    const handleRetry = () => {
+        if (!mutation.variables || mutation.isPending) return;
+        clearErrorResponse();
+        mutation.mutate(mutation.variables);
     };
 
     return (
@@ -204,6 +225,19 @@ export const CardProcessForm = ({
                     </div>
                 )}
             </section>
+
+            {/* ✅ 수정: 400은 안내만, 500/Network는 PATCH 재시도 제공 */}
+            {errorResponse && errorResponse.status !== 404 && (
+                <CardErrorToast
+                    title="처리 정보 저장 실패"
+                    message="처리 정보를 저장하지 못했습니다."
+                    isRetrying={isPending}
+                    onRetry={
+                        errorResponse.status >= 500 ? handleRetry : undefined
+                    }
+                    onClose={clearErrorResponse}
+                />
+            )}
         </form>
     );
 };

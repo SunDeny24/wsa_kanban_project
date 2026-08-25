@@ -16,11 +16,16 @@ import { ConfirmModal } from "@/components/common/ConfirmModal";
 import { CardProcessForm } from "@/features/cards/components/CardProcessForm";
 import { MoreHorizontal, Pencil, Trash2, X } from "lucide-react";
 import { CardStatusSelect } from "@/features/cards/components/CardStatusSelect";
+import { CardDetailSkeleton } from "@/features/cards/components/CardDetailSkeleton";
+import CardErrorToast from "@/features/cards/components/CardErrorToast";
+import { getErrorResponse } from "@/lib/api/error";
+import { AlertCircle, RefreshCw } from "lucide-react";
 
 interface CardDetailProps {
     cardId: string;
     projectId: string;
     onClose: () => void;
+    onCardUnavailable: () => void;
 }
 
 interface DetailItemProps {
@@ -28,7 +33,12 @@ interface DetailItemProps {
     value: React.ReactNode;
 }
 
-export const CardDetail = ({ cardId, projectId, onClose }: CardDetailProps) => {
+export const CardDetail = ({
+    cardId,
+    projectId,
+    onClose,
+    onCardUnavailable,
+}: CardDetailProps) => {
     const [isEditing, setIsEditing] = useState(false); // 편집 모드 상태
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // 삭제 모달 상태
     // 더보기 메뉴
@@ -42,8 +52,11 @@ export const CardDetail = ({ cardId, projectId, onClose }: CardDetailProps) => {
     const {
         data: card,
         isLoading,
-        isError,
+        error: queryError,
+        refetch,
+        isFetching,
     } = useEntityQuery<Card>("/cards", cardId);
+    const queryErrorResponse = queryError ? getErrorResponse(queryError) : null;
 
     /* 카드 삭제 API */
     const deleteCard = useDeleteEntity<void>("/cards", {
@@ -58,6 +71,8 @@ export const CardDetail = ({ cardId, projectId, onClose }: CardDetailProps) => {
 
     /* 카드 삭제 함수 */
     const handleDelete = () => {
+        // 삭제 중 중복 요청 방지
+        if (deleteCard.isPending) return;
         deleteCard.mutate(cardId);
     };
 
@@ -107,14 +122,79 @@ export const CardDetail = ({ cardId, projectId, onClose }: CardDetailProps) => {
         };
     }, [isMoreMenuOpen]);
 
+    // 상세 조회 또는 DELETE 404 처리
+    useEffect(() => {
+        // 삭제요청 실패시
+        const deleteErrorResponse = deleteCard.error
+            ? getErrorResponse(deleteCard.error)
+            : null;
+        // 카드상세조회, 삭제요청 404 실패시 반환
+        const isMissingCard =
+            queryErrorResponse?.status === 404 ||
+            deleteErrorResponse?.status === 404;
+        if (!isMissingCard) return;
+
+        setIsDeleteModalOpen(false); // 삭제 모달 닫기
+        onCardUnavailable();
+    }, [queryErrorResponse?.status, deleteCard.error, onCardUnavailable]);
+
     // 확인용 log
     // console.log("[CardDetail] 요청 cardId:", cardId);
 
+    // 상세 조회 중에도 기존 모달 프레임 유지
     if (isLoading) {
-        return <div>카드를 불러오는 중...</div>;
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                <div className="relative max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        aria-label="닫기"
+                        className="absolute right-4 top-4 z-10 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500">
+                        <X className="h-4 w-4" />
+                    </button>
+                    <CardDetailSkeleton />
+                </div>
+            </div>
+        );
     }
-    if (isError) {
-        return <div>카드를 불러오지 못했습니다.</div>;
+
+    // 500/Network 상세 조회 실패는 모달 안에서 GET 재시도 제공
+    if (queryErrorResponse && queryErrorResponse.status !== 404) {
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                <div className="relative flex min-h-72 w-full max-w-2xl flex-col items-center justify-center rounded-2xl bg-white px-6 text-center shadow-xl">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        aria-label="닫기"
+                        className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500">
+                        <X className="h-4 w-4" />
+                    </button>
+                    <AlertCircle
+                        className="h-7 w-7 text-red-500"
+                        aria-hidden="true"
+                    />
+                    <p className="mt-3 text-sm font-medium text-gray-900">
+                        카드를 불러오지 못했습니다.
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">
+                        잠시 후 다시 시도해주세요.
+                    </p>
+                    <button
+                        type="button"
+                        onClick={() => void refetch()}
+                        disabled={isFetching}
+                        className="mt-4 inline-flex h-9 items-center gap-2 rounded-lg border border-gray-300 px-3 text-sm font-medium text-gray-700 disabled:opacity-50">
+                        <RefreshCw
+                            className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`}
+                            aria-hidden="true"
+                        />
+                        {isFetching ? "다시 불러오는 중..." : "다시 시도"}
+                    </button>
+                </div>
+            </div>
+        );
     }
 
     if (!card) return null;
@@ -303,6 +383,7 @@ export const CardDetail = ({ cardId, projectId, onClose }: CardDetailProps) => {
                         projectId={projectId}
                         onCancel={() => setIsEditing(false)}
                         onSuccess={() => setIsEditing(false)}
+                        onCardUnavailable={onCardUnavailable}
                     />
                 ) : (
                     <div className="min-h-0 flex-1 overflow-y-auto space-y-7 px-6 py-6">
@@ -377,6 +458,7 @@ export const CardDetail = ({ cardId, projectId, onClose }: CardDetailProps) => {
                                 card={card}
                                 projectId={projectId}
                                 onDirtyChange={setIsProcessDirty}
+                                onCardUnavailable={onCardUnavailable}
                             />
                         </section>
                     </div>
@@ -392,9 +474,28 @@ export const CardDetail = ({ cardId, projectId, onClose }: CardDetailProps) => {
                 confirmText="삭제"
                 cancelText="취소"
                 variant="danger"
+                isLoading={deleteCard.isPending}
                 onConfirm={handleDelete}
-                onCancel={() => setIsDeleteModalOpen(false)}
+                onCancel={() => {
+                    if (!deleteCard.isPending) setIsDeleteModalOpen(false);
+                }}
             />
+
+            {/* 카드 삭제 실패시(500,Network오류) 상세유지하며 재시도하게 */}
+            {deleteCard.error &&
+                getErrorResponse(deleteCard.error).status !== 404 && (
+                    <CardErrorToast
+                        title="카드 삭제 실패"
+                        message="카드를 삭제하지 못했습니다."
+                        isRetrying={deleteCard.isPending}
+                        onRetry={
+                            getErrorResponse(deleteCard.error).status >= 500
+                                ? handleDelete
+                                : undefined
+                        }
+                        onClose={() => deleteCard.reset()}
+                    />
+                )}
         </div>
     );
 };

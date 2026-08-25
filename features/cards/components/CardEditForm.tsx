@@ -5,12 +5,15 @@ import { useUpdateEntityForm } from "@/lib/hooks/useQueryForm";
 import { priorityLabel, supportTypeLabel } from "@/features/cards/constants";
 import { formatDateTime } from "@/lib/utils/dateFormat";
 import { toCardUpdateRequest } from "@/features/cards/utils/cardMapper";
+import { useEffect } from "react";
+import CardErrorToast from "@/features/cards/components/CardErrorToast";
 
 interface CardEditFormProps {
     card: Card;
     projectId: string;
     onCancel: () => void;
     onSuccess: () => void;
+    onCardUnavailable: () => void;
 }
 
 export const CardEditForm = ({
@@ -18,30 +21,39 @@ export const CardEditForm = ({
     projectId,
     onCancel,
     onSuccess,
+    onCardUnavailable,
 }: CardEditFormProps) => {
     const {
-        data: queryCard,
-        isLoading,
         register,
         onSubmit,
         formState: { errors },
         isPending,
+        errorResponse,
+        clearErrorResponse,
+        mutation,
     } = useUpdateEntityForm<CardUpdateForm, Card, Card>("/cards", card.id, {
-        mapQueryData: toCardUpdateRequest,
+        queryOptions: { enabled: false }, //중복 GET 방지
+        formOptions: { defaultValues: toCardUpdateRequest(card) }, //GET과 PATCH 필드 불일치로 인해 요청필드만 초기화값설정
+        mapQueryData: toCardUpdateRequest, //캐시 데이터 기존 카드값 요청필드로 매핑
         mutationOptions: {
-            invalidateKeys: [[`/projects/${projectId}/cards`]],
+            invalidateKeys: [[`/projects/${projectId}/cards`]], //
             onSuccessCallback: () => {
                 onSuccess();
             },
         },
     });
 
-    if (isLoading) {
-        return <div>카드를 불러오는 중...</div>;
-    }
-    if (!queryCard) {
-        return <div>카드를 불러오지 못했습니다.</div>;
-    }
+    // 404 에러 발생시 카드 삭제됨으로 간주하고 onCardUnavailable 호출
+    useEffect(() => {
+        if (errorResponse?.status === 404) onCardUnavailable();
+    }, [errorResponse?.status, onCardUnavailable]);
+
+    // 저장 실패시 재시도 버튼 클릭 시 호출되는 함수
+    const handleRetry = () => {
+        if (!mutation.variables || mutation.isPending) return; //저장중이면 재시도 불가
+        clearErrorResponse();
+        mutation.mutate(mutation.variables); //재시도
+    };
 
     return (
         <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
@@ -136,7 +148,7 @@ export const CardEditForm = ({
                             </p>
 
                             <div className="flex min-h-10 items-center rounded-lg bg-gray-50 px-3 text-sm text-gray-700">
-                                {queryCard.assigner ?? "-"}
+                                {card.assigner ?? "-"}
                             </div>
                         </div>
 
@@ -163,8 +175,8 @@ export const CardEditForm = ({
                             </p>
 
                             <div className="flex min-h-10 items-center rounded-lg bg-gray-50 px-3 text-sm text-gray-700">
-                                {queryCard.occurredAt
-                                    ? formatDateTime(queryCard.occurredAt)
+                                {card.occurredAt
+                                    ? formatDateTime(card.occurredAt)
                                     : "-"}
                             </div>
                         </div>
@@ -244,15 +256,15 @@ export const CardEditForm = ({
                         </div>
 
                         {/* 해결일시 - 서버 자동 관리 */}
-                        {queryCard.status === "DONE" && (
+                        {card.status === "DONE" && (
                             <div>
                                 <p className="mb-1 text-xs font-medium text-gray-500">
                                     해결일시
                                 </p>
 
                                 <div className="flex min-h-10 items-center rounded-lg bg-gray-50 px-3 text-sm text-gray-700">
-                                    {queryCard.resolvedAt
-                                        ? formatDateTime(queryCard.resolvedAt)
+                                    {card.resolvedAt
+                                        ? formatDateTime(card.resolvedAt)
                                         : "-"}
                                 </div>
                             </div>
@@ -306,6 +318,19 @@ export const CardEditForm = ({
                     {isPending ? "저장 중..." : "저장"}
                 </button>
             </div>
+
+            {/* 저장 실패 Toast */}
+            {errorResponse && errorResponse.status !== 404 && (
+                <CardErrorToast
+                    title="카드 저장 실패"
+                    message="카드 내용을 저장하지 못했습니다."
+                    isRetrying={isPending}
+                    onRetry={
+                        errorResponse.status >= 500 ? handleRetry : undefined
+                    }
+                    onClose={clearErrorResponse}
+                />
+            )}
         </form>
     );
 };
