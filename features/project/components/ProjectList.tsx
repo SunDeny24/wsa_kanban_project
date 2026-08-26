@@ -1,18 +1,21 @@
 "use client";
-import React, { useState } from "react";
+
+import React, { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ProjectTable } from "./ProjectListTable";
 import { ProjectCreate } from "./ProjectCreate";
 import { Project, ProjectStatus } from "../types";
-import { useListEntityForm } from "@/lib/hooks/useQueryForm";
 import { ProjectListSkeleton } from "@/features/project/components/skeleton/ProjectListSkeleton";
+import { useEntityListQuery, QueryParams } from "@/lib/hooks/useEntity";
+import { getErrorResponse } from "@/lib/api/error";
 
 // 프로젝트 검색/필터 폼 타입 정의
-interface ProjectSearchForm {
+interface ProjectSearchParams extends QueryParams {
     customer?: string;
     name?: string;
     status?: ProjectStatus;
-    sort?: string;
+    sort: string;
+    page: number;
 }
 
 interface ProjectListResponse {
@@ -23,80 +26,151 @@ interface ProjectListResponse {
     size?: number;
 }
 
+// URL의 status가 올바른 값인지 검사
+const parseProjectStatus = (
+    value: string | null
+): ProjectStatus | undefined => {
+    if (value === "QUOTATION" || value === "ACTIVE" || value === "ARCHIVED") {
+        return value;
+    }
+
+    return undefined;
+};
+
+// URL의 page를 1 이상의 숫자로 변환
+const parsePage = (value: string | null) => {
+    const parsedPage = Number.parseInt(value ?? "1", 10);
+
+    if (!Number.isFinite(parsedPage) || parsedPage < 1) {
+        return 1;
+    }
+
+    return parsedPage;
+};
+
 export const ProjectList = () => {
-    // URL 상태관리
+    // URL 값 확인
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false); // 프로젝트 생성 모달 상태관리
-    const statusParam = searchParams.get("status"); // URL 에서 검색 조건 및 페이지 번호 가져옴
 
-    // 검색 조건 초기화 - 고객사 검색이 있으면 customer, 프로젝트명 검색이 있으면 name, 둘 다 없으면 customer로 초기화
-    const initialSearchType = searchParams.get("name") ? "name" : "customer";
-    // 검색 조건 상태관리
+    // 검색 조건과 정렬 상태 URL에서 가져오기
+    const name = searchParams.get("name") ?? "";
+    const customer = searchParams.get("customer") ?? "";
+    const status = parseProjectStatus(searchParams.get("status"));
+    const sort = searchParams.get("sort") ?? "createdAt,desc";
+
+    const urlPage = parsePage(searchParams.get("page")); //URL page는 사용자가 보는 1부터 시작하는 값
+    const apiPage = urlPage - 1; // API는 page가 0부터 시작
+
+    // 검색 조건 초기화 - 고객사 검색이 있으면 customer, 프로젝트명 검색이 있으면 name, 둘 다 없으면 name으로 초기화
     const [searchType, setSearchType] = useState<"customer" | "name">(
-        searchParams.get("customer") || searchParams.get("name")
-            ? initialSearchType
-            : "name"
+        name ? "name" : customer ? "customer" : "name"
     );
-    // 검색어 상태관리
-    const [keyword, setKeyword] = useState(
-        searchParams.get(initialSearchType) ?? ""
+    const [keyword, setKeyword] = useState(name || customer); // 입력되는 건 로컬 저장
+
+    /**
+     * URL 파라미터를 업데이트하는 함수
+     * @param updates - 업데이트할 URL 파라미터 객체
+     * */
+    const updateSearchParams = useCallback(
+        (
+            updates: Partial<{
+                name: string;
+                customer: string;
+                status: ProjectStatus;
+                sort: string;
+                page: number;
+            }>
+        ) => {
+            // 현재 URL parameter를 복사
+            const params = new URLSearchParams(searchParams.toString());
+
+            Object.entries(updates).forEach(([key, value]) => {
+                // 값이 없으면 복사한 URL에서 해당 파라미터 제거
+                if (value === undefined || value === null || value === "") {
+                    params.delete(key);
+                    return;
+                }
+
+                params.set(key, String(value));
+            });
+
+            // 파라미터 문자열로 생성해서 URL 업데이트
+            const queryString = params.toString();
+            const nextUrl = queryString
+                ? `${pathname}?${queryString}`
+                : pathname;
+
+            // URL 업데이트
+            router.push(nextUrl, {
+                //  scroll: false,
+            });
+        },
+        [pathname, router, searchParams]
     );
 
-    // URL에서 statusParam이 유효한 값인지 확인하고 초기 상태를 설정
-    const initialStatus =
-        statusParam === "QUOTATION" ||
-        statusParam === "ACTIVE" ||
-        statusParam === "ARCHIVED"
-            ? statusParam
-            : undefined;
+    // URL이 뒤로가기/앞으로가기로 변경되면 검색창도 복원
+    useEffect(() => {
+        if (name) {
+            setSearchType("name");
+            setKeyword(name);
+            return;
+        }
 
-    // URL은 화면에 표시되는 1부터 시작하는 페이지 번호를 사용합니다.
-    const initialPage = Math.max(
-        0,
-        (Number.parseInt(searchParams.get("page") ?? "1", 10) || 1) - 1
-    );
+        if (customer) {
+            setSearchType("customer");
+            setKeyword(customer);
+            return;
+        }
+
+        setSearchType("name");
+        setKeyword("");
+    }, [name, customer]);
+
+    // URL 값을 React Query 요청 조건으로 직접 사용
+    const queryParams: ProjectSearchParams = {
+        name: name || undefined,
+        customer: customer || undefined,
+        status,
+        sort,
+        page: apiPage,
+    };
+
+    // 프로젝트 리스트 조회 API 호출
     const {
-        onSearch,
-        setFilter,
-        setValue,
-        appliedFilters,
-        page,
-        onPageChange,
         data,
         isLoading,
         isFetching,
-        error,
+        error: queryError,
         refetch,
-    } = useListEntityForm<ProjectListResponse, ProjectSearchForm>("/projects", {
-        formOptions: {
-            defaultValues: {
-                customer: searchParams.get("customer") ?? "",
-                name: searchParams.get("name") ?? "",
-                status: initialStatus,
-                sort: searchParams.get("sort") ?? "createdAt,desc",
-            },
-        },
-        pagination: {
-            page: initialPage,
-        },
-    });
+    } = useEntityListQuery<ProjectListResponse>("/projects", queryParams);
+
+    const error = queryError ? getErrorResponse(queryError) : null; //공통 에러처리
 
     // 검색 폼 제출 시 호출되는 함수
     const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
         const nextKeyword = keyword.trim();
 
+        // 검색 조건이 프로젝트명, 고객사밖에 없으므로 이렇게 작성 - 선택한 대상에 맞게 업데이트함
         // 선택한 검색 대상만 API 필터에 남기고 반대쪽 조건은 제거합니다.
-        setValue(
-            "name",
-            searchType === "name" && nextKeyword ? nextKeyword : undefined
-        );
-        setValue(
-            "customer",
-            searchType === "customer" && nextKeyword ? nextKeyword : undefined
-        );
-        void onSearch(event);
+        if (searchType === "name") {
+            updateSearchParams({
+                name: nextKeyword,
+                customer: "",
+                page: 1,
+            });
+            return;
+        }
+        updateSearchParams({
+            name: "",
+            customer: nextKeyword,
+            page: 1,
+        });
     };
 
     // 검색 조건 초기화 시 호출되는 함수
@@ -105,37 +179,36 @@ export const ProjectList = () => {
         setSearchType("customer");
 
         // 상태와 정렬은 유지하면서 두 검색 조건만 제거합니다.
-        setFilter("customer", undefined);
-        setFilter("name", undefined);
+        updateSearchParams({
+            name: "",
+            customer: "",
+            page: 1,
+        });
+    };
+    // 상태 필터 변경 함수 - URL에 반영
+    const handleStatusChange = (nextStatus?: ProjectStatus) => {
+        updateSearchParams({
+            status: nextStatus,
+            page: 1,
+        });
+    };
+    // 정렬 변경 함수
+    const handleSortChange = (nextSort: string) => {
+        updateSearchParams({
+            sort: nextSort,
+            page: 1,
+        });
     };
 
-    // URLSearchParams를 사용하여 현재 필터 상태와 페이지 번호를 URL에 반영
-    // 프로젝트 목록으로 뒤로가기 시에도 검색 조건이 유지되도록 하기 위함
-    React.useEffect(() => {
-        const params = new URLSearchParams();
+    // 페이지 변경 함수
+    // UI에서는 기존 코드처럼 0부터 시작하는 page 번호를 받음
+    const handlePageChange = (nextZeroBasedPage: number) => {
+        updateSearchParams({
+            page: nextZeroBasedPage + 1,
+        });
+    };
 
-        // 필터 상태와 페이지 번호를 URLSearchParams에 설정
-        if (appliedFilters.status) params.set("status", appliedFilters.status);
-        if (appliedFilters.customer)
-            params.set("customer", appliedFilters.customer);
-        if (appliedFilters.name) params.set("name", appliedFilters.name);
-        params.set("page", String(page + 1)); // API page는 0부터 시작하므로 화면에는 +1
-        if (appliedFilters.sort) params.set("sort", appliedFilters.sort);
-
-        // 현재 URL과 비교하여 변경 사항이 있으면 URL을 업데이트
-        const nextUrl = `${pathname}?${params.toString()}`;
-        const currentUrl = `${pathname}${searchParams.size ? `?${searchParams.toString()}` : ""}`;
-
-        if (nextUrl !== currentUrl) {
-            router.replace(nextUrl, { scroll: false });
-        }
-    }, [appliedFilters, page, pathname, router, searchParams]);
-
-    // 현재 필터 상태와 정렬 상태를 가져옵니다.
-    const currentStatus = appliedFilters.status;
-    const currentSort = appliedFilters.sort ?? "createdAt,desc";
-
-    const currentPage = page; // api page는 useQueryForm hook에서 state로 관리
+    const currentPage = apiPage; // api page는 useQueryForm hook에서 state로 관리
     const totalPages = data?.totalPages ?? 1; // 전체 데이터는 api데이터
 
     return (
@@ -164,9 +237,9 @@ export const ProjectList = () => {
                 <div className="flex min-w-max gap-5">
                     <button
                         type="button"
-                        onClick={() => setFilter("status", undefined)}
+                        onClick={() => handleStatusChange(undefined)}
                         className={`px-1 pb-3 text-sm ${
-                            !currentStatus
+                            !status
                                 ? "border-b-2 border-black font-semibold text-gray-900"
                                 : "text-gray-500 hover:text-gray-900"
                         }`}>
@@ -175,9 +248,9 @@ export const ProjectList = () => {
 
                     <button
                         type="button"
-                        onClick={() => setFilter("status", "QUOTATION")}
+                        onClick={() => handleStatusChange("QUOTATION")}
                         className={`px-1 pb-3 text-sm ${
-                            currentStatus === "QUOTATION"
+                            status === "QUOTATION"
                                 ? "border-b-2 border-black font-semibold text-gray-900"
                                 : "text-gray-500 hover:text-gray-900"
                         }`}>
@@ -186,9 +259,9 @@ export const ProjectList = () => {
 
                     <button
                         type="button"
-                        onClick={() => setFilter("status", "ACTIVE")}
+                        onClick={() => handleStatusChange("ACTIVE")}
                         className={`px-1 pb-3 text-sm ${
-                            currentStatus === "ACTIVE"
+                            status === "ACTIVE"
                                 ? "border-b-2 border-black font-semibold text-gray-900"
                                 : "text-gray-500 hover:text-gray-900"
                         }`}>
@@ -197,9 +270,9 @@ export const ProjectList = () => {
 
                     <button
                         type="button"
-                        onClick={() => setFilter("status", "ARCHIVED")}
+                        onClick={() => handleStatusChange("ARCHIVED")}
                         className={`px-1 pb-3 text-sm ${
-                            currentStatus === "ARCHIVED"
+                            status === "ARCHIVED"
                                 ? "border-b-2 border-black font-semibold text-gray-900"
                                 : "text-gray-500 hover:text-gray-900"
                         }`}>
@@ -280,8 +353,10 @@ export const ProjectList = () => {
                     </label>
                     <select
                         id="project-sort"
-                        value={currentSort}
-                        onChange={(e) => setFilter("sort", e.target.value)}
+                        value={sort}
+                        onChange={(event) =>
+                            handleSortChange(event.target.value)
+                        }
                         className="h-9 shrink-0 rounded-md border border-gray-300 bg-white px-2 text-xs outline-none focus:border-black">
                         <option value="createdAt,desc">최신순</option>
                         <option value="createdAt,asc">오래된순</option>
@@ -317,7 +392,7 @@ export const ProjectList = () => {
                         <button
                             type="button"
                             disabled={currentPage === 0}
-                            onClick={() => onPageChange(currentPage - 1)}
+                            onClick={() => handlePageChange(currentPage - 1)}
                             className="flex h-8 min-w-8 items-center justify-center rounded-md border px-2 text-sm text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40">
                             이전
                         </button>
@@ -330,7 +405,7 @@ export const ProjectList = () => {
                             <button
                                 key={pageNumber}
                                 type="button"
-                                onClick={() => onPageChange(pageNumber)}
+                                onClick={() => handlePageChange(pageNumber)}
                                 className={`h-8 min-w-8 rounded-md px-2 text-sm ${
                                     pageNumber === currentPage
                                         ? "bg-black font-medium text-white"
@@ -345,7 +420,7 @@ export const ProjectList = () => {
                         <button
                             type="button"
                             disabled={currentPage >= totalPages - 1}
-                            onClick={() => onPageChange(currentPage + 1)}
+                            onClick={() => handlePageChange(currentPage + 1)}
                             className="flex h-8 min-w-8 items-center justify-center rounded-md border px-2 text-sm text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40">
                             다음
                         </button>

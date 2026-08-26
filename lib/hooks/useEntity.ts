@@ -42,7 +42,10 @@ export function useEntityQuery<T = any>(
 // GET - 리스트 조회 (검색, 페이징 포함)
 // ============================================
 
-type QueryParams = Record<string, string | number | string[] | undefined>;
+export type QueryParams = Record<
+    string,
+    string | number | string[] | undefined
+>;
 
 export function useEntityListQuery<T = any>(
     endpoint: string,
