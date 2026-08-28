@@ -1,13 +1,15 @@
 // 프로젝트 목록 server component
 
-import ProjectList from "@/features/project/components/ProjectList";
 import { Suspense } from "react";
+import ProjectList from "@/features/project/components/ProjectList";
+import { ProjectListPageSkeleton } from "@/features/project/components/skeleton/ProjectListSkeleton";
 
-// 추후 스켈레톤이나 로딩 컴포넌트로 교체 가능
 export default function ProjectsPage() {
-  return (
-    <Suspense fallback={<div>프로젝트를 불러오는 중...</div>}>
-        <ProjectList/>
-    </Suspense>
-  );
+    return (
+        // useSearchParams를 사용하는 Client Component의 렌더링 경계입니다.
+        // 프로젝트 API 로딩은 ProjectList 내부의 isLoading이 처리합니다.
+        <Suspense fallback={<ProjectListPageSkeleton />}>
+            <ProjectList />
+        </Suspense>
+    );
 }

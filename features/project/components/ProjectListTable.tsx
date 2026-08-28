@@ -4,12 +4,21 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Project } from "@/features/project/types";
 import { statusLabel } from "@/features/project/constants";
+import { AlertCircle, RefreshCw } from "lucide-react";
 
 interface ProjectTableProps {
     projects: Project[];
+    errorMessage?: string;
+    onRetry?: () => void;
+    isRetrying?: boolean;
 }
 
-export const ProjectTable = ({ projects }: ProjectTableProps) => {
+export const ProjectTable = ({
+    projects,
+    errorMessage,
+    onRetry,
+    isRetrying = false,
+}: ProjectTableProps) => {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const listUrl = `${pathname}${searchParams.size ? `?${searchParams.toString()}` : ""}`;
@@ -47,7 +56,41 @@ export const ProjectTable = ({ projects }: ProjectTableProps) => {
                     </thead>
 
                     <tbody>
-                        {projects.length === 0 ? (
+                        {errorMessage ? (
+                            <tr>
+                                <td colSpan={6} className="h-[500px] px-4">
+                                    <div
+                                        role="alert"
+                                        className="flex flex-col items-center justify-center text-center">
+                                        <AlertCircle
+                                            aria-hidden="true"
+                                            className="h-7 w-7 text-red-500"
+                                        />
+                                        <p className="mt-3 text-sm font-medium text-gray-800">
+                                            프로젝트를 불러오지 못했습니다.
+                                        </p>
+                                        <p className="mt-1 max-w-md text-xs text-gray-500">
+                                            {errorMessage}
+                                        </p>
+                                        {onRetry && (
+                                            <button
+                                                type="button"
+                                                onClick={onRetry}
+                                                disabled={isRetrying}
+                                                className="mt-4 inline-flex h-9 items-center gap-2 rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">
+                                                <RefreshCw
+                                                    aria-hidden="true"
+                                                    className={`h-4 w-4 ${isRetrying ? "animate-spin" : ""}`}
+                                                />
+                                                {isRetrying
+                                                    ? "다시 불러오는 중..."
+                                                    : "다시 시도"}
+                                            </button>
+                                        )}
+                                    </div>
+                                </td>
+                            </tr>
+                        ) : projects.length === 0 ? (
                             <tr>
                                 <td
                                     colSpan={6}

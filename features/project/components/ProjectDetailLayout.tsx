@@ -15,6 +15,11 @@ import { statusLabel, statusClassName } from "@/features/project/constants";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
 import { ErrorModal } from "@/components/common/ErrorModal";
 import { getErrorResponse } from "@/lib/api/error";
+import { ProjectHeaderSkeleton } from "@/features/project/components/skeleton/ProjectDetailSkeleton";
+import {
+    ProjectLoadErrorState,
+    ProjectNotFoundState,
+} from "@/features/project/components/ProjectNotFoundState";
 
 interface ProjectDetailLayoutProps {
     projectId: string;
@@ -46,8 +51,17 @@ export default function ProjectDetailLayout({
     const {
         data: project,
         isLoading,
-        isError,
+        error: queryError,
+        refetch,
+        isFetching,
     } = useEntityQuery<Project>("/projects", projectId);
+
+    // 프로젝트 조회 오류는 상위 Layout에서 처리
+    const queryErrorResponse = queryError ? getErrorResponse(queryError) : null;
+    const isNotFound = queryErrorResponse?.status === 404;
+    const isLoadError =
+        (!!queryError && !isNotFound) ||
+        (!isLoading && !queryError && !project);
 
     /* ----------------프로젝트 활성화 처리 --------------------- */
     // 삭제모달
@@ -159,136 +173,146 @@ export default function ProjectDetailLayout({
                         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
                         프로젝트 목록
                     </button>
-                    <div className="flex items-center gap-2">
-                        {/* 프로젝트 활성화 버튼 */}
-                        {canActivate && (
-                            <button
-                                type="button"
-                                aria-label={activateLabel}
-                                onClick={() => setIsActiveModalOpen(true)}
-                                className="
+                    {/* 프로젝트 상태변경 버튼, 삭제버튼 */}
+                    {project && (
+                        <div className="flex items-center gap-2">
+                            {/* 프로젝트 활성화 버튼 */}
+                            {canActivate && (
+                                <button
+                                    type="button"
+                                    aria-label={activateLabel}
+                                    onClick={() => setIsActiveModalOpen(true)}
+                                    className="
                                     inline-flex h-8 items-center justify-center gap-1.5
                                     rounded-lg bg-green-50 px-2.5
                                     text-sm font-medium text-green-700
                                     transition-colors hover:text-green-800
                                 ">
-                                <Play
-                                    className="h-3.5 w-3.5"
-                                    aria-hidden="true"
-                                />
-                                <span className="hidden sm:inline">
-                                    {activateLabel}
-                                </span>
-                            </button>
-                        )}
+                                    <Play
+                                        className="h-3.5 w-3.5"
+                                        aria-hidden="true"
+                                    />
+                                    <span className="hidden sm:inline">
+                                        {activateLabel}
+                                    </span>
+                                </button>
+                            )}
 
-                        {/* 프로젝트 보관 버튼: ACTIVE 상태에서만 노출 */}
-                        {canArchive && (
-                            <button
-                                type="button"
-                                aria-label="프로젝트 보관"
-                                onClick={() => setIsArchiveModalOpen(true)}
-                                className="
+                            {/* 프로젝트 보관 버튼: ACTIVE 상태에서만 노출 */}
+                            {canArchive && (
+                                <button
+                                    type="button"
+                                    aria-label="프로젝트 보관"
+                                    onClick={() => setIsArchiveModalOpen(true)}
+                                    className="
                                     inline-flex h-8 items-center justify-center gap-1.5
                                     rounded-lg bg-gray-100 px-2.5
                                     text-sm font-medium text-gray-500
                                     transition-colors hover:text-gray-600
                                 ">
-                                <Archive
-                                    className="h-3.5 w-3.5"
-                                    aria-hidden="true"
-                                />
-                                <span className="hidden sm:inline">보관</span>
-                            </button>
-                        )}
+                                    <Archive
+                                        className="h-3.5 w-3.5"
+                                        aria-hidden="true"
+                                    />
+                                    <span className="hidden sm:inline">
+                                        보관
+                                    </span>
+                                </button>
+                            )}
 
-                        {/* 프로젝트 삭제버튼(전체삭제) */}
-                        <button
-                            type="button"
-                            aria-label="프로젝트 삭제"
-                            onClick={() => setIsDeleteModalOpen(true)}
-                            className="
+                            {/* 프로젝트 삭제버튼(전체삭제) */}
+                            <button
+                                type="button"
+                                aria-label="프로젝트 삭제"
+                                onClick={() => setIsDeleteModalOpen(true)}
+                                className="
                                 inline-flex h-8 items-center justify-center gap-1.5
                                 rounded-lg bg-red-50 px-2.5
                                 text-sm font-medium text-red-500
                                 transition-colors hover:text-red-600
                             ">
-                            <Trash2
-                                className="h-3.5 w-3.5"
-                                aria-hidden="true"
-                            />
-                            <span className="hidden sm:inline">삭제</span>
-                        </button>
-                    </div>
+                                <Trash2
+                                    className="h-3.5 w-3.5"
+                                    aria-hidden="true"
+                                />
+                                <span className="hidden sm:inline">삭제</span>
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {/* 헤더 정보 - 프로젝트명, 상태, 고객사 */}
-                <div className="mx-auto max-w-7xl px-6 pt-3 ">
-                    {isLoading ? (
-                        <p className="text-sm text-gray-500">
-                            프로젝트 정보를 불러오는 중...
-                        </p>
-                    ) : isError || !project ? (
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">
-                                프로젝트 상세
-                            </h1>
-                            <p className="mt-1 text-sm text-red-500">
-                                프로젝트 정보를 불러오지 못했습니다.
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                            {/* 프로젝트명 */}
-                            <h1 className="text-2xl font-bold text-gray-900">
-                                {project.name}
-                            </h1>
-                            {/* 상태 */}
-                            <span
-                                className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${
-                                    statusClassName[project.status]
-                                }`}>
-                                {statusLabel[project.status]}
-                            </span>
-                            {/* 고객사명 */}
-                            <span className="text-sm text-gray-500">
-                                고객사 : {project.customer}
-                            </span>
-                        </div>
-                    )}
-
-                    {/* 프로젝트 상세 네비게이션(탭) 메뉴 */}
-                    <nav
-                        className="mt-8 flex gap-7"
-                        aria-label="프로젝트 상세 메뉴">
-                        {tabs.map((tab) => {
-                            const tabPath = `${basePath}${tab.path}`;
-                            const href = `${tabPath}?${fromQuery}`;
-                            const isActive = pathname === tabPath;
-
-                            return (
-                                <Link
-                                    key={tab.label}
-                                    href={href}
-                                    className={`border-b-2 px-1 pb-3 text-sm font-medium transition-colors ${
-                                        isActive
-                                            ? "border-blue-600 text-blue-600"
-                                            : "border-transparent text-gray-500 hover:text-gray-900"
+                {!isNotFound && !isLoadError && (
+                    <div className="mx-auto max-w-7xl px-6 pt-3 ">
+                        {/* 프로젝트 조회 중엔 헤더 스켈레톤 */}
+                        {isLoading ? (
+                            <ProjectHeaderSkeleton />
+                        ) : project ? (
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                                {/* 프로젝트명 */}
+                                <h1 className="text-2xl font-bold text-gray-900">
+                                    {project.name}
+                                </h1>
+                                {/* 상태 */}
+                                <span
+                                    className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${
+                                        statusClassName[project.status]
                                     }`}>
-                                    {tab.label}
-                                </Link>
-                            );
-                        })}
-                    </nav>
-                </div>
+                                    {statusLabel[project.status]}
+                                </span>
+                                {/* 고객사명 */}
+                                <span className="text-sm text-gray-500">
+                                    고객사 : {project.customer}
+                                </span>
+                            </div>
+                        ) : null}
+
+                        {/* 프로젝트 상세 네비게이션(탭) 메뉴 */}
+                        <nav
+                            className="mt-8 flex gap-7"
+                            aria-label="프로젝트 상세 메뉴">
+                            {tabs.map((tab) => {
+                                const tabPath = `${basePath}${tab.path}`;
+                                const href = `${tabPath}?${fromQuery}`;
+                                const isActive = pathname === tabPath;
+
+                                return (
+                                    <Link
+                                        key={tab.label}
+                                        href={href}
+                                        className={`border-b-2 px-1 pb-3 text-sm font-medium transition-colors ${
+                                            isActive
+                                                ? "border-blue-600 text-blue-600"
+                                                : "border-transparent text-gray-500 hover:text-gray-900"
+                                        }`}>
+                                        {tab.label}
+                                    </Link>
+                                );
+                            })}
+                        </nav>
+                    </div>
+                )}
             </header>
 
             {/* 탭 별 섹션부분 - 개요, 견적, 보드 */}
             <section className="mx-auto max-w-7xl px-6 py-8">
-                {children}
+                {isNotFound ? (
+                    // 404에서는 하위 children을 렌더링하지 않음
+                    <ProjectNotFoundState backHref={listUrl} />
+                ) : isLoadError ? (
+                    // 404가 아닌 일시적인 조회 오류는 Layout에서 재시도 제공
+                    <ProjectLoadErrorState
+                        onRetry={() => void refetch()}
+                        isRetrying={isFetching}
+                    />
+                ) : (
+                    // Loading과 정상 조회에서만 하위 탭 내용을 렌더링
+                    children
+                )}
             </section>
 
-            {/* 공통 팝업 */}
+            {/* ---------------------공통 팝업--------------------- */}
+            {/* 삭제 팝업 */}
             <ConfirmModal
                 isOpen={isDeleteModalOpen}
                 title="프로젝트를 삭제하시겠습니까?"
@@ -300,7 +324,7 @@ export default function ProjectDetailLayout({
                 onConfirm={handleDelete}
                 onCancel={() => setIsDeleteModalOpen(false)}
             />
-
+            {/* 보관 팝업 */}
             <ConfirmModal
                 isOpen={isArchiveModalOpen}
                 title="프로젝트를 보관하시겠습니까?"
@@ -314,6 +338,7 @@ export default function ProjectDetailLayout({
                 }}
             />
 
+            {/* 활성화 팝업 */}
             <ConfirmModal
                 isOpen={isActiveModalOpen}
                 title={activateDialog.title}
@@ -327,6 +352,7 @@ export default function ProjectDetailLayout({
                 }}
             />
 
+            {/* 공통 에러 모달 */}
             <ErrorModal
                 open={!!actionErrorResponse}
                 message={actionErrorResponse?.message}

@@ -12,6 +12,7 @@ interface QuotationTimelineCardProps {
     onSend: (quotation: Quotation) => void;
     onConfirm: (quotation: Quotation) => void;
     onReject: (quotation: Quotation) => void;
+    isQuotation: boolean;
 }
 
 const formatAmount = (amount: number) =>
@@ -33,6 +34,7 @@ export const QuotationTimelineCard = ({
     onSend,
     onConfirm,
     onReject,
+    isQuotation,
 }: QuotationTimelineCardProps) => {
     const isPending = pendingAction !== undefined;
 
@@ -85,7 +87,7 @@ export const QuotationTimelineCard = ({
                 {/* 상태 변경 액션은 날짜 행의 오른쪽에만 노출합니다. */}
                 <div className="flex shrink-0 items-center gap-1.5">
                     {/* 상태가 작성중일 경우 발송버튼*/}
-                    {quotation.status === "DRAFT" && (
+                    {isQuotation && quotation.status === "DRAFT" && (
                         <button
                             type="button"
                             onClick={() => onSend(quotation)}
@@ -95,7 +97,7 @@ export const QuotationTimelineCard = ({
                         </button>
                     )}
                     {/* 상태가 발송일 경우 확정이랑 반려버튼 */}
-                    {quotation.status === "SENT" && (
+                    {isQuotation && quotation.status === "SENT" && (
                         <>
                             <button
                                 type="button"
