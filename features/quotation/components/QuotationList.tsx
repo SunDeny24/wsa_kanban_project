@@ -27,13 +27,14 @@ type ConfirmAction = {
 
 export const QuotationList = ({ projectId }: QuotationListProps) => {
     const quotationsEndpoint = `/projects/${projectId}/quotations`;
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false); // 견적 생성 모달 상태
     const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(
         null
-    );
-    const [actionError, setActionError] = useState<ErrorResponse | null>(null);
+    ); // 견적 확정/반려 모달 상태
+    const [actionError, setActionError] = useState<ErrorResponse | null>(null); // 견적 확정/반려 실패 시 에러 상태
 
     // 프로젝트가 견적중일 때만 새 리비전을 생성할 수 있습니다.
+    // 프로젝트 조회 훅을 통해 프로젝트 상태를 확인합니다.
     const { data: project } = useEntityQuery<Project>("/projects", projectId, {
         enabled: Boolean(projectId),
     });
@@ -46,24 +47,27 @@ export const QuotationList = ({ projectId }: QuotationListProps) => {
         enabled: Boolean(projectId),
     });
 
+    // 공통 PATCH 훅 옵션을 정의합니다.
     const commonMutationOptions = {
         invalidateKeys: [[quotationsEndpoint]],
         onErrorCallback: (mutationError: unknown) =>
             setActionError(getErrorResponse(mutationError)),
     };
 
-    // 공통 PATCH 훅의 id에 상태 액션 경로를 포함해 동적 URL을 구성합니다.
+    // 견적 전송
     const sendMutation = useUpdateEntity<void, Quotation>(
         "/quotations",
         commonMutationOptions
     );
+    // 견적 반려
     const rejectMutation = useUpdateEntity<void, Quotation>(
         "/quotations",
         commonMutationOptions
     );
+    // 견적 확정
     const confirmMutation = useUpdateEntity<void, Quotation>("/quotations", {
         ...commonMutationOptions,
-        // 확정 시 서버가 프로젝트 상태도 변경하므로 상세와 목록을 함께 갱신합니다.
+        // 확정 시 서버가 프로젝트 상태도 변경하므로(견적>진행중) 상세와 목록을 함께 갱신합니다.
         invalidateKeys: [
             [quotationsEndpoint],
             ["/projects", projectId],
@@ -71,10 +75,12 @@ export const QuotationList = ({ projectId }: QuotationListProps) => {
         ],
     });
 
+    // 견적 전송 핸들러
     const handleSend = (quotation: Quotation) => {
         sendMutation.mutate({ id: `${quotation.id}/send`, data: undefined });
     };
 
+    // 견적 확정/반려 핸들러
     const handleConfirmAction = () => {
         if (!confirmAction) return;
 
@@ -86,6 +92,7 @@ export const QuotationList = ({ projectId }: QuotationListProps) => {
         );
     };
 
+    // 현재 진행중인 전송,반려,확정 요청 있는지 확인해서 저장
     const pendingQuotationId = sendMutation.isPending
         ? sendMutation.variables?.id.split("/")[0]
         : confirmMutation.isPending
@@ -93,6 +100,7 @@ export const QuotationList = ({ projectId }: QuotationListProps) => {
           : rejectMutation.isPending
             ? rejectMutation.variables?.id.split("/")[0]
             : undefined;
+    // 현재 진행중인 요청이 뭔지 확인해서 저장
     const pendingAction = sendMutation.isPending
         ? "send"
         : confirmMutation.isPending
